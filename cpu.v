@@ -51,6 +51,7 @@ module cpu(
 	 input uart_parity_error
     );
 
+	wire pci_en;
 	wire [15:0] pci_new_addr;
 	wire pci_branch;
 	wire [15:0] pii_addr;
@@ -65,13 +66,14 @@ module cpu(
 		.pci_new_addr(pci_new_addr),
 		.pci_interrupt(0),
 		.pci_epc(0),
-		.pci_en(1),
+		.pci_en(pci_en),
 		.pco_instr(pii_instr),
 		.pco_addr(pii_addr),
 		.pci_ram2_data(pci_ram2_data),
 		.pco_ram2_oe(pco_ram2_oe)
 	);
 	
+	wire pii_en;
 	wire [15:0] pio_addr;
 	wire [15:0] pio_instr;
 	pc_id cpu_pc_id (
@@ -79,7 +81,7 @@ module cpu(
 		.pii_instr(pii_instr),
 		.pii_clk(cpu_clk),
 		.pii_rst(cpu_rst),
-		.pii_en(1),
+		.pii_en(pii_en),
 		.pio_addr(pio_addr),
 		.pio_instr(pio_instr)
 	);
@@ -110,6 +112,11 @@ module cpu(
 	wire [3:0] mwi_wreg_addr;
 	wire mwi_reg_wrn;
 	
+	wire scho_read_from_last2;
+	wire schi_pause_request;
+	wire [3:0] schi_count;
+	wire [3:0] schi_type;
+	
 	id cpu_id (
 		.idi_addr(pio_addr),
 		.idi_instr(pio_instr),
@@ -137,7 +144,12 @@ module cpu(
 		.ido_interrupt(ido_interrupt),
 		
 		.ido_reg1_addr(regi_addr1),
-		.ido_reg2_addr(regi_addr2)
+		.ido_reg2_addr(regi_addr2),
+		
+		.ido_pause_request(schi_pause_request),
+		.ido_sched_type(schi_type),
+		.ido_sched_count(schi_count),
+		.idi_read_from_last2(scho_read_from_last2)
 	);
 
 	reg_file cpu_reg_file (
@@ -152,6 +164,7 @@ module cpu(
 		.rego_data2(rego_data2)
 	);
 	
+	wire iei_en;
 	wire [15:0] ieo_instr;
 	wire [15:0] ieo_pc;
 	wire [7:0] ieo_alu_opcode;
@@ -162,7 +175,7 @@ module cpu(
 	id_exe cpu_id_exe (
 		.iei_clk(cpu_clk),
 		.iei_rst(cpu_rst),
-		.iei_en(1),
+		.iei_en(iei_en),
 	
 		.iei_instr(iei_instr),
 		.iei_pc(iei_pc),
@@ -206,6 +219,7 @@ module cpu(
 		.exeo_rwe(emi_rwe)
 	);
 	
+	wire emi_en;
 	wire [15:0] emo_instr;
 	wire [15:0] emo_pc;
 	wire [15:0] emo_data;
@@ -217,7 +231,7 @@ module cpu(
 	exe_mem cpu_exe_mem(
 		.emi_clk(cpu_clk),
 		.emi_rst(cpu_rst),
-		.emi_en(1),
+		.emi_en(emi_en),
 	 
 		.emi_instr(emi_instr),
 		.emi_pc(emi_pc),
@@ -265,6 +279,7 @@ module cpu(
 		.memo_uart_rdn(uart_rdn)
 	);
 	
+	wire mwi_en;
 	wire [15:0] mwo_instr;
 	wire [15:0] mwo_pc;
 	wire [15:0] mwo_result;
@@ -273,7 +288,7 @@ module cpu(
 	mem_wb cpu_mem_wb(
 		.mwi_clk(cpu_clk),
 		.mwi_rst(cpu_rst),
-		.mwi_en(1),
+		.mwi_en(mwi_en),
 		.mwi_instr(mwi_instr),
 		.mwi_pc(mwi_pc),
 		.mwi_result(mwi_result),
@@ -304,14 +319,34 @@ module cpu(
 		.digito_1(cpu_digit1),
 		.digito_2(cpu_digit2)
 	);
+	
+	scheduler cpu_sched(
+		.schi_clk(cpu_clk),
+		.schi_rst(cpu_rst),
+		.schi_pause_request(schi_pause_request),
+		.schi_count(schi_count),
+		.schi_type(schi_type),
+	
+		.scho_pc_en(pci_en),
+		.scho_pi_en(pii_en),
+		.scho_ie_en(iei_en),
+		.scho_em_en(emi_en),
+		.scho_mw_en(mwi_en),
+		.scho_reg_en(regi_en),
+		
+		.scho_read_from_last2(scho_read_from_last2)
+	);
 
 	assign cpu_led[7:0] = mwi_result[7:0];
-	assign cpu_led[15] = mwo_reg_wrn;
-	assign cpu_led[14:13] = emi_rwe;
-	assign cpu_led[12:10] = 0;
+	assign cpu_led[15] = pci_en;
+	assign cpu_led[14] = pii_en;
+	assign cpu_led[13] = iei_en;
+	assign cpu_led[12] = emi_en;
+	assign cpu_led[11] = mwi_en;
+	assign cpu_led[10] = schi_pause_request;
 	assign cpu_led[9] = uart_rdn;
 	assign cpu_led[8] = uart_data_ready;
-	assign cpu_digit_data = regi_wdata[7:0]; 
+	assign cpu_digit_data = mwo_result[7:0]; 
 	
 	//assign ram1_en = 1;
 	//assign ram1_we = 1;

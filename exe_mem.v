@@ -68,7 +68,7 @@ module exe_mem(
 			mem_addr = 0;
 			rwe = 0;
 			write_to_mem_data = 16'h0;
-		end else begin
+		end else if (emi_en) begin
 			instr = emi_instr;
 			pc = emi_pc;
 			data = emi_data;

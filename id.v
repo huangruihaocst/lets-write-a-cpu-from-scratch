@@ -28,8 +28,11 @@ module id(
 	 input [1:0] idi_last_rwe,
 	 input [3:0] idi_last_reg,
 	 input [15:0] idi_last_result,
+	 
+	 input [1:0] idi_read_from_last2,
 	 input [3:0] idi_last2_reg,
 	 input [15:0] idi_last2_result,
+
 	 input [7:0] idi_cause,
 	 
 	 output [15:0] ido_addr,
@@ -45,7 +48,11 @@ module id(
 	 output ido_interrupt,
 	 
 	 output [3:0] ido_reg1_addr,
-	 output [3:0] ido_reg2_addr
+	 output [3:0] ido_reg2_addr,
+	 
+	 output ido_pause_request,
+	 output [3:0] ido_sched_count,
+	 output [3:0] ido_sched_type
     );
 	
 	wire [2:0] rx;
@@ -80,6 +87,9 @@ module id(
 	reg [15:0] new_addr;
 	reg branch;
 	reg [15:0] write_to_mem_data;
+	reg [3:0] sched_count;
+	reg [3:0] sched_type;
+	reg pause_request;
 	
 	initial begin
 		op1 = 16'hee;
@@ -92,6 +102,9 @@ module id(
 		new_addr = 0;
 		branch = 0;
 		write_to_mem_data = 16'h0;
+		sched_type = `SCHED_CONTINUE;
+		sched_count = 0;
+		pause_request = 0;
 	end
 
 	always begin
@@ -104,22 +117,34 @@ module id(
 		op2 = 0;
 		alu_opcode = `ALU_OPCODE_ADD;
 		rwe = `RWE_IDLE;
+		sched_type = `SCHED_CONTINUE;
+		sched_count = 0;
+		pause_request = 0;
 		case (opcode5)
 			`INSTR_OPCODE5_NOP: begin
-
+				// ID段有问题， 还是取出了以前的值
 			end
 			`INSTR_OPCODE5_ADDIU: begin
-				// check delay1-data-conflict
-				// TODO: check data conflict in other instructions
-				if (idi_last_reg == rx) begin
+				if (idi_read_from_last2) begin
+					sched_type = `SCHED_CONTINUE;
+					op1 = idi_last2_result;
+					wreg_addr = rx;
+				end else if (idi_last_reg == rx && idi_last_rwe == `RWE_READ_MEM) begin
+					pause_request = 1;
+					sched_type = `SCHED_PAUSE_FOR_LW;
+					wreg_addr = `REG_INVALID;
+					op1 = idi_last2_result;
+				end else if (idi_last_reg == rx && idi_last_rwe == `RWE_WRITE_REG) begin
+					// delay1 data conflict
 					op1 = idi_last_result;
+					wreg_addr = rx;
 				end else begin
 					op1 = idi_reg1_data;
+					reg1_addr = rx;
+					wreg_addr = rx;
 				end
 				
 				op2 = sext_imm8;
-				wreg_addr = rx;
-				reg1_addr = rx;
 				alu_opcode = `ALU_OPCODE_ADD;
 				rwe = `RWE_WRITE_REG;
 			end
@@ -195,4 +220,8 @@ module id(
 	assign ido_rwe = rwe;
 	assign ido_interrupt = 0;
 	assign ido_write_to_mem_data = write_to_mem_data;
+	assign ido_pause_request = pause_request;
+	assign ido_sched_count = sched_count;
+	assign ido_sched_type = sched_type;
+	
 endmodule
