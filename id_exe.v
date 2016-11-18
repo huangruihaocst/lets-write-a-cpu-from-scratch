@@ -59,7 +59,7 @@ module id_exe(
 		op1 = 2;
 		op2 = 3;
 		wreg_addr = `REG_INVALID;
-		rwe = 0;
+		rwe = `RWE_IDLE;
 		write_to_mem_data = 16'h0;
 	end
 
@@ -71,9 +71,9 @@ module id_exe(
 			op1 = 0;
 			op2 = 0;
 			wreg_addr = `REG_INVALID;
-			rwe = 0;
+			rwe = `RWE_IDLE;
 			write_to_mem_data = 16'h0;
-		end else begin
+		end else if (iei_en) begin
 			instr = iei_instr;
 			pc = iei_pc;
 			opcode = iei_alu_opcode;
@@ -82,6 +82,15 @@ module id_exe(
 			wreg_addr = iei_wreg_addr;
 			rwe = iei_rwe;
 			write_to_mem_data = iei_write_to_mem_data;
+		end else begin
+			instr = 0;
+			pc = 0;
+			opcode = 0;
+			op1 = 0;
+			op2 = 0;
+			wreg_addr = `REG_INVALID;
+			rwe = `RWE_IDLE;
+			write_to_mem_data = 16'h0;
 		end
 	end
 	

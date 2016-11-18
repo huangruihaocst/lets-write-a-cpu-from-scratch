@@ -25,4 +25,6 @@
 
 `define ADDR_SERIAL_PORT		16'hbf00
 
+`define SCHED_CONTINUE			0
+`define SCHED_PAUSE_FOR_LW		1
 `endif

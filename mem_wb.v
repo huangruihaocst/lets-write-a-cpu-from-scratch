@@ -58,7 +58,7 @@ module mem_wb(
 			result = 16'hdd;
 			wreg_addr = `REG_INVALID;
 			wrn = 0;
-		end else begin
+		end else if (mwi_en) begin
 			instr = mwi_instr;
 			pc = mwi_pc;
 			result = mwi_result;
