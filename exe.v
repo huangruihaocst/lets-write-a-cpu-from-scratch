@@ -26,6 +26,7 @@ module exe(
 	 input [15:0] exei_op1,
 	 input [15:0] exei_op2,
 	 input [3:0] exei_wreg_addr,
+	 input [15:0] exei_write_to_mem_data, 
 	 input [1:0] exei_rwe,
 	
 	 output [15:0] exeo_instr,
@@ -33,10 +34,11 @@ module exe(
 	 output [15:0] exeo_result,
 	 output [15:0] exeo_mem_addr,
 	 output [3:0] exeo_wreg_addr,
+	 output [15:0] exeo_write_to_mem_data,
 	 output [1:0] exeo_rwe
 	 );
 	reg [15:0] result;
-	
+
 	initial begin
 		result = 1;
 	end
@@ -45,6 +47,9 @@ module exe(
 		case (exei_alu_opcode) 
 			`ALU_OPCODE_ADD: begin
 				result = exei_op1 + exei_op2;
+			end
+			`ALU_OPCODE_SHIFT_LEFT: begin
+				result = exei_op1 << 8;
 			end
 			default: begin
 				result = 16'hfe;
@@ -57,4 +62,5 @@ module exe(
 	assign exeo_result = result;
 	assign exeo_wreg_addr = exei_wreg_addr;
 	assign exeo_rwe = exei_rwe;
+	assign exeo_write_to_mem_data = exei_write_to_mem_data;
 endmodule

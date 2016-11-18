@@ -92,6 +92,7 @@ module cpu(
 	wire [15:0] iei_op1;
 	wire [15:0] iei_op2;
 	wire [3:0] iei_wreg_addr;
+	wire [15:0] iei_write_to_mem_data;
 	wire [1:0] iei_rwe;
 	wire ido_interrupt;
 	
@@ -129,6 +130,7 @@ module cpu(
 		.ido_op1(iei_op1),
 		.ido_op2(iei_op2),
 		.ido_wreg_addr(iei_wreg_addr),
+		.ido_write_to_mem_data(iei_write_to_mem_data),
 		.ido_rwe(iei_rwe),
 		.ido_new_pc(pci_new_addr),
 		.ido_branch(pci_branch),
@@ -168,6 +170,7 @@ module cpu(
 		.iei_op1(iei_op1),
 		.iei_op2(iei_op2),
 		.iei_wreg_addr(iei_wreg_addr),
+		.iei_write_to_mem_data(iei_write_to_mem_data),
 		.iei_rwe(iei_rwe),
 	
 		.ieo_instr(ieo_instr),
@@ -176,11 +179,13 @@ module cpu(
 		.ieo_op1(ieo_op1),
 		.ieo_op2(ieo_op2),
 		.ieo_wreg_addr(ieo_wreg_addr),
+		.ieo_write_to_mem_data(ieo_write_to_mem_data),
 		.ieo_rwe(ieo_rwe)
 	);
 	
 	wire [15:0] emi_instr;
 	wire [15:0] emi_pc;
+	wire [15:0] emi_write_to_mem_data;
 
 	exe cpu_exe (
 		.exei_instr(ieo_instr),
@@ -189,6 +194,7 @@ module cpu(
 		.exei_op1(ieo_op1),
 		.exei_op2(ieo_op2),
 		.exei_wreg_addr(ieo_wreg_addr),
+		.exei_write_to_mem_data(ieo_write_to_mem_data),
 		.exei_rwe(ieo_rwe),
 	
 		.exeo_instr(emi_instr),
@@ -196,6 +202,7 @@ module cpu(
 		.exeo_result(emi_data),
 		.exeo_mem_addr(emi_mem_addr),
 		.exeo_wreg_addr(emi_wreg_addr),
+		.exeo_write_to_mem_data(emi_write_to_mem_data),
 		.exeo_rwe(emi_rwe)
 	);
 	
@@ -205,6 +212,8 @@ module cpu(
 	wire [3:0] emo_wreg_addr;
 	wire [15:0] emo_mem_addr;
 	wire [1:0] emo_rwe;
+	wire [15:0] emo_write_to_mem_data;
+	
 	exe_mem cpu_exe_mem(
 		.emi_clk(cpu_clk),
 		.emi_rst(cpu_rst),
@@ -215,6 +224,7 @@ module cpu(
 		.emi_data(emi_data),
 		.emi_wreg_addr(emi_wreg_addr),
 		.emi_mem_addr(emi_mem_addr),
+		.emi_write_to_mem_data(emi_write_to_mem_data),
 		.emi_rwe(emi_rwe),
 	 
 		.emo_instr(emo_instr),
@@ -222,6 +232,7 @@ module cpu(
 		.emo_data(emo_data),
 		.emo_wreg_addr(emo_wreg_addr),
 		.emo_mem_addr(emo_mem_addr),
+		.emo_write_to_mem_data(emo_write_to_mem_data),
 		.emo_rwe(emo_rwe)
 	);
 	
@@ -233,6 +244,7 @@ module cpu(
 		.memi_pc(emo_pc),
 		.memi_data(emo_data),
 		.memi_wreg_addr(emo_wreg_addr),
+		.memi_write_to_mem_data(emo_write_to_mem_data),
 		.memi_mem_addr(emo_mem_addr),
 		.memi_rwe(emo_rwe),
 
@@ -246,7 +258,11 @@ module cpu(
 		.memo_ram1_we(ram1_we),
 		.memo_ram1_oe(ram1_oe),
 		.memo_ram1_addr(ram1_addr_bus),
-		.memio_ram1_data(ram1_data_bus)
+		.memio_ram1_data(ram1_data_bus),
+		
+		.memi_uart_data_ready(uart_data_ready),
+		.memo_uart_wrn(uart_wrn),
+		.memo_uart_rdn(uart_rdn)
 	);
 	
 	wire [15:0] mwo_instr;
@@ -258,7 +274,6 @@ module cpu(
 		.mwi_clk(cpu_clk),
 		.mwi_rst(cpu_rst),
 		.mwi_en(1),
-	 
 		.mwi_instr(mwi_instr),
 		.mwi_pc(mwi_pc),
 		.mwi_result(mwi_result),
@@ -290,12 +305,12 @@ module cpu(
 		.digito_2(cpu_digit2)
 	);
 
-	assign cpu_led[3:0] = regi_waddr;
-	assign cpu_led[7:4] = iei_wreg_addr;
+	assign cpu_led[7:0] = mwi_result[7:0];
 	assign cpu_led[15] = mwo_reg_wrn;
 	assign cpu_led[14:13] = emi_rwe;
-	assign cpu_led[12:9] = emi_wreg_addr;
-	assign cpu_led[8] = pci_branch;
+	assign cpu_led[12:10] = 0;
+	assign cpu_led[9] = uart_rdn;
+	assign cpu_led[8] = uart_data_ready;
 	assign cpu_digit_data = regi_wdata[7:0]; 
 	
 	//assign ram1_en = 1;
@@ -310,7 +325,7 @@ module cpu(
 	assign ram2_addr_bus = pii_addr;
 	assign pci_ram2_data = ram2_data_bus;
 	
-	assign uart_wrn = 1;
-	assign uart_rdn = 1;
+	//assign uart_wrn = 1;
+	//assign uart_rdn = 1;
 
 endmodule
