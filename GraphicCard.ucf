@@ -1,0 +1,43 @@
+
+
+NET "fclk" LOC = B9;
+NET "clkin" LOC = U6;
+NET "datain" LOC = V6;
+NET "rst" LOC = U10;
+NET "vs" LOC = E6;
+NET "hs" LOC = D6;
+NET "blue[2]" LOC = B6;
+NET "blue[1]" LOC = A6;
+NET "blue[0]" LOC = D5;
+NET "red[2]" LOC = A4;
+NET "red[1]" LOC = C3;
+NET "red[0]" LOC = A7;
+NET "green[2]" LOC = C5;
+NET "green[1]" LOC = C4;
+NET "green[0]" LOC = B4;
+NET "dig0[6]" LOC = F8;
+NET "dig0[5]" LOC = A8;
+NET "dig0[4]" LOC = E8;
+NET "dig0[3]" LOC = F7;
+NET "dig0[2]" LOC = C7;
+NET "dig0[1]" LOC = E7;
+NET "dig0[0]" LOC = D7;
+NET "dig1[6]" LOC = B10;
+NET "dig1[5]" LOC = G9;
+NET "dig1[4]" LOC = A10;
+NET "dig1[3]" LOC = F9;
+NET "dig1[2]" LOC = C9;
+NET "dig1[1]" LOC = E9;
+NET "dig1[0]" LOC = D9;
+
+# PlanAhead Generated physical constraints 
+
+NET "leds[8]" LOC = A12;
+NET "leds[7]" LOC = F11;
+NET "leds[6]" LOC = E11;
+NET "leds[5]" LOC = D11;
+NET "leds[4]" LOC = C11;
+NET "leds[3]" LOC = B11;
+NET "leds[2]" LOC = A11;
+NET "leds[1]" LOC = E10;
+NET "leds[0]" LOC = D10;
