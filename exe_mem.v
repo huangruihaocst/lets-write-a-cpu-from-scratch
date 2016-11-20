@@ -28,7 +28,6 @@ module exe_mem(
 	 input [15:0] emi_pc,
 	 input [15:0] emi_data,
 	 input [3:0] emi_wreg_addr,
-	 input [15:0] emi_mem_addr,
 	 input [15:0] emi_write_to_mem_data,
 	 input [1:0] emi_rwe,
 	 
@@ -36,7 +35,6 @@ module exe_mem(
 	 output [15:0] emo_pc,
 	 output [15:0] emo_data,
 	 output [3:0] emo_wreg_addr,
-	 output [15:0] emo_mem_addr,
 	 output [15:0] emo_write_to_mem_data,
 	 output [1:0] emo_rwe
     );
@@ -45,7 +43,6 @@ module exe_mem(
 	reg [15:0] pc;
 	reg [15:0] data;
 	reg [3:0] wreg_addr;
-	reg [15:0] mem_addr;
 	reg [15:0] write_to_mem_data;
 	reg [1:0] rwe;
 	
@@ -54,7 +51,6 @@ module exe_mem(
 		pc = 0;
 		data = 0;
 		wreg_addr = `REG_INVALID;
-		mem_addr = 0;
 		rwe = 0;
 		write_to_mem_data = 16'h0;
 	end
@@ -65,7 +61,6 @@ module exe_mem(
 			pc = 0;
 			data = 0;
 			wreg_addr = `REG_INVALID;
-			mem_addr = 0;
 			rwe = 0;
 			write_to_mem_data = 16'h0;
 		end else if (emi_en) begin
@@ -73,7 +68,6 @@ module exe_mem(
 			pc = emi_pc;
 			data = emi_data;
 			wreg_addr = emi_wreg_addr;
-			mem_addr = emi_mem_addr;
 			rwe = emi_rwe;
 			write_to_mem_data = emi_write_to_mem_data;
 		end
@@ -82,7 +76,6 @@ module exe_mem(
 	assign emo_pc = pc;
 	assign emo_data = data;
 	assign emo_wreg_addr = wreg_addr;
-	assign emo_mem_addr = mem_addr;
 	assign emo_write_to_mem_data = write_to_mem_data;
 	assign emo_rwe = rwe;
 

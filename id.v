@@ -34,6 +34,8 @@ module id(
 	 input [15:0] idi_last2_result,
 
 	 input [7:0] idi_cause,
+	 output ido_int,
+	 output [3:0] ido_int_id,
 	 
 	 output [15:0] ido_addr,
 	 output [15:0] ido_instr,
@@ -45,7 +47,6 @@ module id(
 	 output [15:0] ido_new_pc,
 	 output [1:0] ido_rwe,
 	 output ido_branch,
-	 output ido_interrupt,
 	 
 	 output [3:0] ido_reg1_addr,
 	 output [3:0] ido_reg2_addr,
@@ -90,6 +91,8 @@ module id(
 	reg [3:0] sched_count;
 	reg [3:0] sched_type;
 	reg pause_request;
+	reg int_happened;
+	reg [3:0] int_id;
 	
 	initial begin
 		op1 = 16'hee;
@@ -105,9 +108,11 @@ module id(
 		sched_type = `SCHED_CONTINUE;
 		sched_count = 0;
 		pause_request = 0;
+		int_happened = 0;
+		int_id = 0;
 	end
 
-	always begin
+	always @* begin
 		// default is nop
 		reg1_addr = `REG_INVALID;
 		reg2_addr = `REG_INVALID;
@@ -115,14 +120,15 @@ module id(
 		branch = 0;
 		op1 = 0;
 		op2 = 0;
-		alu_opcode = `ALU_OPCODE_ADD;
+		alu_opcode = `ALU_OPCODE_NOP;
 		rwe = `RWE_IDLE;
 		sched_type = `SCHED_CONTINUE;
 		sched_count = 0;
 		pause_request = 0;
+		int_happened = 0;
+		int_id = 0;
 		case (opcode5)
 			`INSTR_OPCODE5_NOP: begin
-				// ID段有问题， 还是取出了以前的值
 			end
 			`INSTR_OPCODE5_ADDIU: begin
 				if (idi_read_from_last2) begin
@@ -148,6 +154,26 @@ module id(
 				alu_opcode = `ALU_OPCODE_ADD;
 				rwe = `RWE_WRITE_REG;
 			end
+			`INSTR_OPCODE5_SUBU: begin
+				if (idi_instr[1:0] == `INSTR_OPCODE_LOW2_SUBU) begin
+					if (idi_last_reg == rx) begin
+						op1 = idi_last_result;
+					end else begin
+						op1 = idi_reg1_data;
+						reg1_addr = rx;
+					end
+					if (idi_last_reg == ry) begin
+						op2 = idi_last_result;
+					end else begin
+						op2 = idi_reg2_data;
+						reg2_addr = ry;
+					end
+				
+					wreg_addr = rz;
+					alu_opcode = `ALU_OPCODE_SUB;
+					rwe = `RWE_WRITE_REG;
+				end
+			end
 			`INSTR_OPCODE5_LI: begin
 				op1 = zext_imm8;
 				op2 = 0;
@@ -169,6 +195,58 @@ module id(
 					rwe = `RWE_WRITE_REG;
 				end
 			end
+			`INSTR_OPCODE5_CMP: begin
+				if (idi_instr[4:0] == `INSTR_OPCODE_LOW5_CMP) begin
+					if (idi_last_reg == rx) begin
+						op1 = idi_last_result;
+					end else begin
+						op1 = idi_reg1_data;
+					end
+					if (idi_last_reg == ry) begin
+						op2 = idi_last_result;
+					end else begin
+						op2 = idi_reg2_data;
+					end
+					reg1_addr = rx;
+					reg2_addr = ry;
+					wreg_addr = `REG_T;
+					alu_opcode = `ALU_OPCODE_CMP;
+					rwe = `RWE_WRITE_REG;
+				end else if (idi_instr[7:0] == `INSTR_OPCODE_LOW8_JR) begin
+					if (idi_last_reg == rx) begin
+						op1 = idi_last_result;
+					end else begin
+						op1 = idi_reg1_data;
+					end
+					reg1_addr = rx;
+					new_addr = op1;
+					branch = 1;
+				end else if (idi_instr[7:0] == `INSTR_OPCODE_LOW8_MFPC) begin
+					op1 = idi_addr + 1;
+					op2 = 0;
+					wreg_addr = rx;
+					alu_opcode = `ALU_OPCODE_ADD;
+					rwe = `RWE_WRITE_REG;
+				end else if (idi_instr[4:0] == `INSTR_OPCODE_LOW5_AND) begin
+					if (idi_last_reg == rx) begin
+						op1 = idi_last_result;
+					end else begin
+						op1 = idi_reg1_data;
+						reg1_addr = rx;
+					end
+					if (idi_last_reg == ry) begin
+						op2 = idi_last_result;
+					end else begin
+						op2 = idi_reg2_data;
+						reg2_addr = ry;
+					end
+				
+					wreg_addr = rx;
+					alu_opcode = `ALU_OPCODE_AND;
+					rwe = `RWE_WRITE_REG;
+				end
+			end
+			// Memory instructions
 			`INSTR_OPCODE5_LW: begin
 				if (idi_last_reg == rx) begin
 					op1 = idi_last_result;
@@ -186,7 +264,7 @@ module id(
 					op1 = idi_last_result;
 				end else begin
 					op1 = idi_reg1_data;
-				end 
+				end
 				if (idi_last_reg == ry) begin
 					write_to_mem_data = idi_last_result;
 				end else begin
@@ -195,15 +273,58 @@ module id(
 				op2 = sext_imm5;
 				reg1_addr = rx;
 				reg2_addr = ry;
+				alu_opcode = `ALU_OPCODE_ADD;
 				wreg_addr = `REG_INVALID;
 				rwe = `RWE_WRITE_MEM;
 			end
+			// Branch instructions
 			`INSTR_OPCODE5_B: begin
-				new_addr = idi_addr + {{5{imm11[10]}}, imm11};
+				new_addr = idi_addr + {{5{imm11[10]}}, imm11} + 1;
 				branch = 1;
-				rwe = `RWE_IDLE;
 			end
-
+			`INSTR_OPCODE5_BNEZ: begin
+				if (idi_last_reg == rx) begin
+					op1 = idi_last_result;
+				end else begin
+					op1 = idi_reg1_data;
+				end
+				reg1_addr = rx;
+				new_addr = idi_addr + sext_imm8 + 1;
+				branch = !(op1 == 0);
+			end
+			`INSTR_OPCODE5_BEQZ: begin
+				if (idi_last_reg == rx) begin
+					op1 = idi_last_result;
+				end else begin
+					op1 = idi_reg1_data;
+				end
+				reg1_addr = rx;
+				new_addr = idi_addr + sext_imm8 + 1;
+				branch = op1 == 0;
+			end
+			`INSTR_OPCODE5_BRANCH_T: begin
+				if (idi_last_reg == `REG_T) begin
+					op1 = idi_last_result;
+				end else begin
+					reg1_addr = `REG_T;
+					op1 = idi_reg1_data;
+				end
+			
+				new_addr = idi_addr + sext_imm8 + 1;
+				if (rx == `INSTR_OPCODE_HIGH3_BTEQZ) begin
+					branch = (op1 == 0);
+				end else if (rx == `INSTR_OPCODE_HIGH3_BTNEZ) begin
+					branch = (op1 != 0);
+				end
+			end
+			// Interruptions
+			`INSTR_OPCODE5_INT: begin
+				if (idi_instr[10:4] == `INSTR_OPCODE_HIGH7_INT) begin
+					// "INT 0xf" is defined as "ERET", but they are similar instructions
+					int_happened = 1;
+					int_id = idi_instr[3:0];
+				end
+			end
 		endcase
 	end
 
@@ -218,10 +339,10 @@ module id(
 	assign ido_new_pc = new_addr;
 	assign ido_branch = branch;
 	assign ido_rwe = rwe;
-	assign ido_interrupt = 0;
 	assign ido_write_to_mem_data = write_to_mem_data;
 	assign ido_pause_request = pause_request;
 	assign ido_sched_count = sched_count;
 	assign ido_sched_type = sched_type;
-	
+	assign ido_int = int_happened;
+	assign ido_int_id = int_id;
 endmodule

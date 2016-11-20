@@ -27,13 +27,18 @@ module reg_file(
 	 input regi_clk,
 	 input regi_rst,
 	 output [15:0] rego_data1,
-	 output [15:0] rego_data2
+	 output [15:0] rego_data2,
+	 
+	 output [15:0] rego_debug_data,
+	 input [3:0] regi_debug_addr
     );
 
 	reg [15:0] regs[0:15];
 	reg [15:0] reg_out1;
 	reg [15:0] reg_out2;
 	integer i;
+	
+	assign rego_debug_data = regs[regi_debug_addr];
 	
 	always @(posedge regi_clk or negedge regi_rst) begin
 		if (regi_rst == 0) begin
