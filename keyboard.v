@@ -1,15 +1,12 @@
 module keyboard (
     input datain, clkin,
     input fclk, rst,
-	 input rdn,
-	 output data_ready,
     output reg [7:0] scancode
 );
 
 reg [4:0] state;
 reg data, clk1, clk2;
 reg [7:0] code;
-reg dataready;
 wire clk, odd;
 
 localparam  DELAY   = 5'b00000,
@@ -28,10 +25,8 @@ localparam  DELAY   = 5'b00000,
 
 initial begin
 	state = 0;
-	dataready = 0;
 end
 
-assign data_ready = dataready;
 assign clk = (~clk1) & clk2;
 assign odd = code[0] ^ code[1] ^ code[2] ^ code[3]
             ^ code[4] ^ code[5] ^ code[6] ^ code[7]; 
@@ -45,16 +40,10 @@ end
 always @(posedge fclk or negedge rst) begin
     if (rst == 0) begin
         // reset
-		  dataready <= 0;
         state   <= DELAY;
         code    <= 8'b00000000;
     end
     else begin
-	 //when rdn is enabled (means the data is read over)
-	 //we can set the dataready back to zero
-		  if (rdn && dataready == 1) begin
-				dataready = 0;
-		  end
         case (state)
         DELAY:
             state <= START;
@@ -126,7 +115,6 @@ always @(posedge fclk or negedge rst) begin
             begin
                 state <= DELAY;
                 scancode <= code;
-					 dataready <= 1;
             end
         endcase
     end
