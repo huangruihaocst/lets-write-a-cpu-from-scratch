@@ -32,7 +32,6 @@ module exe(
 	 output [15:0] exeo_instr,
 	 output [15:0] exeo_pc,
 	 output [15:0] exeo_result,
-	 output [15:0] exeo_mem_addr,
 	 output [3:0] exeo_wreg_addr,
 	 output [15:0] exeo_write_to_mem_data,
 	 output [1:0] exeo_rwe
@@ -43,10 +42,22 @@ module exe(
 		result = 1;
 	end
 	
-	always begin
-		case (exei_alu_opcode) 
+	always @* begin
+		case (exei_alu_opcode)
+			`ALU_OPCODE_NOP: begin
+				result = 0;
+			end
 			`ALU_OPCODE_ADD: begin
 				result = exei_op1 + exei_op2;
+			end
+			`ALU_OPCODE_SUB: begin
+				result = exei_op1 - exei_op2;
+			end
+			`ALU_OPCODE_AND: begin
+				result = exei_op1 & exei_op2;
+			end
+			`ALU_OPCODE_CMP: begin
+				result = exei_op1 == exei_op2 ? 1 : 0;
 			end
 			`ALU_OPCODE_SHIFT_LEFT: begin
 				result = exei_op1 << 8;
@@ -58,7 +69,7 @@ module exe(
 	end
 
 	assign exeo_instr = exei_instr;
-	assign exeo_pc = exeo_pc;
+	assign exeo_pc = exei_pc;
 	assign exeo_result = result;
 	assign exeo_wreg_addr = exei_wreg_addr;
 	assign exeo_rwe = exei_rwe;

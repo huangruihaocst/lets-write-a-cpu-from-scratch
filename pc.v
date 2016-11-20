@@ -43,6 +43,8 @@ module pc(
 		end else if (pci_en == 1) begin
 			if (pci_branch == 1) begin
 				reg_pc = pci_new_addr;
+			end else if (pci_interrupt == 1) begin
+				reg_pc = pci_epc;
 			end else begin
 				reg_pc = reg_pc + 1;
 			end

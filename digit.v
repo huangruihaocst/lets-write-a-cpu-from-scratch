@@ -6,7 +6,7 @@ module digit(
 	 
 	reg [6:0] d1;
 	reg [6:0] d2;
-	always begin
+	always @* begin
 		case (digiti_data[3:0])
 			0: d1 = 7'b0111111;
 			1: d1 = 7'b0000110;
@@ -28,7 +28,7 @@ module digit(
 		endcase
 	end
 	
-	always begin
+	always @* begin
 		case (digiti_data[7:4])
 			0: d2 = 7'b0111111;
 			1: d2 = 7'b0000110;
