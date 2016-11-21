@@ -134,6 +134,8 @@ module cpu(
 	wire [3:0] mwi_wreg_addr;
 	wire mwi_reg_wrn;
 	
+	wire [1:0] emo_rwe; 
+	
 	wire scho_read_from_last2;
 	wire schi_pause_request;
 	wire [3:0] schi_count;
@@ -152,6 +154,10 @@ module cpu(
 		.idi_last_rwe(emi_rwe),
 		.idi_last2_reg(mwi_wreg_addr),
 		.idi_last2_result(mwi_result),
+		.idi_last2_rwe(emo_rwe),
+		.idi_last3_reg(regi_waddr),
+		.idi_last3_result(regi_wdata),
+		.idi_last3_wrn(regi_wrn),
 		
 		.idi_cause(0),
 		.ido_int(schi_int),
@@ -253,7 +259,6 @@ module cpu(
 	wire [15:0] emo_pc;
 	wire [15:0] emo_data;
 	wire [3:0] emo_wreg_addr;
-	wire [1:0] emo_rwe;
 	wire [15:0] emo_write_to_mem_data;
 	
 	exe_mem cpu_exe_mem(

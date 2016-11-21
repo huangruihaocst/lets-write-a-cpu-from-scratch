@@ -32,6 +32,11 @@ module id(
 	 input [1:0] idi_read_from_last2,
 	 input [3:0] idi_last2_reg,
 	 input [15:0] idi_last2_result,
+	 input [1:0] idi_last2_rwe,
+	 
+	 input [3:0] idi_last3_reg,
+	 input [15:0] idi_last3_result,
+	 input idi_last3_wrn,
 
 	 input [7:0] idi_cause,
 	 output ido_int,
@@ -66,6 +71,11 @@ module id(
 	wire [15:0] sext_imm8;
 	wire [15:0] zext_imm8;
 	wire [15:0] sext_imm5;
+	
+	reg [3:0] try_r1;
+	reg [3:0] try_r2;
+	reg [15:0] r1_data;
+	reg [15:0] r2_data;
 	
 	assign opcode5 = idi_instr[15:11];
 	assign rx = idi_instr[10:8];
@@ -110,6 +120,42 @@ module id(
 		pause_request = 0;
 		int_happened = 0;
 		int_id = 0;
+		try_r1 = `REG_INVALID;
+		try_r2 = `REG_INVALID;
+	end
+	
+	// solve register data conflict
+	always @* begin
+		r1_data = idi_reg1_data;
+		r2_data = idi_reg2_data;
+		
+		if (idi_last3_wrn == 1) begin
+			if (idi_last3_reg == try_r1) begin
+				r1_data = idi_last3_result;
+			end
+			if (idi_last3_reg == try_r2) begin
+				r2_data = idi_last3_result;
+			end
+		end
+		if (idi_last2_rwe == `RWE_WRITE_REG || idi_last2_rwe == `RWE_READ_MEM) begin
+			if (idi_last2_reg == try_r1) begin
+				r1_data = idi_last2_result;
+			end
+			if (idi_last2_reg == try_r2) begin
+				r2_data = idi_last2_result;
+			end
+		end 
+		if (idi_last_rwe == `RWE_READ_MEM) begin
+			// this is a big conflict
+		end else if (idi_last_rwe == `RWE_WRITE_REG) begin
+			// following are minor conflicts
+			if (idi_last_reg == try_r1) begin
+				r1_data = idi_last_result;
+			end
+			if (idi_last_reg == try_r2) begin
+				r2_data = idi_last_result;
+			end
+		end 
 	end
 
 	always @* begin
@@ -131,44 +177,37 @@ module id(
 			`INSTR_OPCODE5_NOP: begin
 			end
 			`INSTR_OPCODE5_ADDIU: begin
-				if (idi_read_from_last2) begin
-					sched_type = `SCHED_CONTINUE;
-					op1 = idi_last2_result;
-					wreg_addr = rx;
-				end else if (idi_last_reg == rx && idi_last_rwe == `RWE_READ_MEM) begin
-					pause_request = 1;
-					sched_type = `SCHED_PAUSE_FOR_LW;
-					wreg_addr = `REG_INVALID;
-					op1 = idi_last2_result;
-				end else if (idi_last_reg == rx && idi_last_rwe == `RWE_WRITE_REG) begin
-					// delay1 data conflict
-					op1 = idi_last_result;
-					wreg_addr = rx;
-				end else begin
-					op1 = idi_reg1_data;
-					reg1_addr = rx;
-					wreg_addr = rx;
-				end
-				
+//				if (idi_read_from_last2) begin
+//					sched_type = `SCHED_CONTINUE;
+//					op1 = idi_last2_result;
+//					wreg_addr = rx;
+//				end else if (idi_last_reg == rx && idi_last_rwe == `RWE_READ_MEM) begin
+//					pause_request = 1;
+//					sched_type = `SCHED_PAUSE_FOR_LW;
+//					wreg_addr = `REG_INVALID;
+//					op1 = idi_last2_result;
+//				end else if (idi_last_reg == rx && idi_last_rwe == `RWE_WRITE_REG) begin
+//					// delay1 data conflict
+//					op1 = idi_last_result;
+//					wreg_addr = rx;
+//				end else begin
+//					op1 = idi_reg1_data;
+//					reg1_addr = rx;
+//					wreg_addr = rx;
+//				end
+				try_r1 = rx;
+				op1 = r1_data;
 				op2 = sext_imm8;
+				wreg_addr = rx;
 				alu_opcode = `ALU_OPCODE_ADD;
 				rwe = `RWE_WRITE_REG;
 			end
 			`INSTR_OPCODE5_SUBU: begin
 				if (idi_instr[1:0] == `INSTR_OPCODE_LOW2_SUBU) begin
-					if (idi_last_reg == rx) begin
-						op1 = idi_last_result;
-					end else begin
-						op1 = idi_reg1_data;
-						reg1_addr = rx;
-					end
-					if (idi_last_reg == ry) begin
-						op2 = idi_last_result;
-					end else begin
-						op2 = idi_reg2_data;
-						reg2_addr = ry;
-					end
-				
+					try_r1 = rx;
+					try_r2 = ry;
+					op1 = r1_data;
+					op2 = r2_data;
 					wreg_addr = rz;
 					alu_opcode = `ALU_OPCODE_SUB;
 					rwe = `RWE_WRITE_REG;
@@ -183,42 +222,26 @@ module id(
 			end
 			`INSTR_OPCODE5_SLL: begin
 				if (idi_instr[1:0] == `INSTR_OPCODE_LOW2_SLL) begin
-					if (idi_last_reg == rx) begin
-						op1 = idi_last_result;
-					end else begin
-						op1 = idi_reg1_data;
-					end
-					op2 = (idi_instr[4:2] == 3'b000) ? 16'h8 : {13'h0, idi_instr[4:2]};
+					try_r1 = ry;
+					op1 = r1_data;
+					op2 = (idi_instr[4:2] == 3'b000) ? 16'h8 : idi_instr[4:2];
 					wreg_addr = rx;
-					reg1_addr = ry;
 					alu_opcode = `ALU_OPCODE_SHIFT_LEFT;
 					rwe = `RWE_WRITE_REG;
 				end
 			end
 			`INSTR_OPCODE5_CMP: begin
 				if (idi_instr[4:0] == `INSTR_OPCODE_LOW5_CMP) begin
-					if (idi_last_reg == rx) begin
-						op1 = idi_last_result;
-					end else begin
-						op1 = idi_reg1_data;
-					end
-					if (idi_last_reg == ry) begin
-						op2 = idi_last_result;
-					end else begin
-						op2 = idi_reg2_data;
-					end
-					reg1_addr = rx;
-					reg2_addr = ry;
+					try_r1 = rx;
+					try_r2 = ry;
+					op1 = r1_data;
+					op2 = r2_data;
 					wreg_addr = `REG_T;
 					alu_opcode = `ALU_OPCODE_CMP;
 					rwe = `RWE_WRITE_REG;
 				end else if (idi_instr[7:0] == `INSTR_OPCODE_LOW8_JR) begin
-					if (idi_last_reg == rx) begin
-						op1 = idi_last_result;
-					end else begin
-						op1 = idi_reg1_data;
-					end
-					reg1_addr = rx;
+					try_r1 = rx;
+					op1 = r1_data;
 					new_addr = op1;
 					branch = 1;
 				end else if (idi_instr[7:0] == `INSTR_OPCODE_LOW8_MFPC) begin
@@ -228,19 +251,10 @@ module id(
 					alu_opcode = `ALU_OPCODE_ADD;
 					rwe = `RWE_WRITE_REG;
 				end else if (idi_instr[4:0] == `INSTR_OPCODE_LOW5_AND) begin
-					if (idi_last_reg == rx) begin
-						op1 = idi_last_result;
-					end else begin
-						op1 = idi_reg1_data;
-						reg1_addr = rx;
-					end
-					if (idi_last_reg == ry) begin
-						op2 = idi_last_result;
-					end else begin
-						op2 = idi_reg2_data;
-						reg2_addr = ry;
-					end
-				
+					try_r1 = rx;
+					try_r2 = ry;
+					op1 = r1_data;
+					op2 = r2_data;
 					wreg_addr = rx;
 					alu_opcode = `ALU_OPCODE_AND;
 					rwe = `RWE_WRITE_REG;
@@ -248,31 +262,19 @@ module id(
 			end
 			// Memory instructions
 			`INSTR_OPCODE5_LW: begin
-				if (idi_last_reg == rx) begin
-					op1 = idi_last_result;
-				end else begin
-					op1 = idi_reg1_data;
-				end
+				try_r1 = rx;
+				op1 = r1_data;
 				op2 = {{11{imm5[4]}},imm5};
 				wreg_addr = ry;
-				reg1_addr = rx;
 				alu_opcode = `ALU_OPCODE_ADD;
 				rwe = `RWE_READ_MEM;
 			end
 			`INSTR_OPCODE5_SW: begin
-				if (idi_last_reg == rx) begin
-					op1 = idi_last_result;
-				end else begin
-					op1 = idi_reg1_data;
-				end
-				if (idi_last_reg == ry) begin
-					write_to_mem_data = idi_last_result;
-				end else begin
-					write_to_mem_data = idi_reg2_data;
-				end
+				try_r1 = rx;
+				try_r2 = ry;
+				op1 = r1_data;
+				write_to_mem_data = r2_data;
 				op2 = sext_imm5;
-				reg1_addr = rx;
-				reg2_addr = ry;
 				alu_opcode = `ALU_OPCODE_ADD;
 				wreg_addr = `REG_INVALID;
 				rwe = `RWE_WRITE_MEM;
@@ -283,33 +285,20 @@ module id(
 				branch = 1;
 			end
 			`INSTR_OPCODE5_BNEZ: begin
-				if (idi_last_reg == rx) begin
-					op1 = idi_last_result;
-				end else begin
-					op1 = idi_reg1_data;
-				end
-				reg1_addr = rx;
+				try_r1 = rx;
+				op1 = r1_data;
 				new_addr = idi_addr + sext_imm8 + 1;
 				branch = !(op1 == 0);
 			end
 			`INSTR_OPCODE5_BEQZ: begin
-				if (idi_last_reg == rx) begin
-					op1 = idi_last_result;
-				end else begin
-					op1 = idi_reg1_data;
-				end
-				reg1_addr = rx;
+				try_r1 = rx;
+				op1 = r1_data;
 				new_addr = idi_addr + sext_imm8 + 1;
 				branch = op1 == 0;
 			end
 			`INSTR_OPCODE5_BRANCH_T: begin
-				if (idi_last_reg == `REG_T) begin
-					op1 = idi_last_result;
-				end else begin
-					reg1_addr = `REG_T;
-					op1 = idi_reg1_data;
-				end
-			
+				try_r1 = `REG_T;
+				op1 = r1_data;
 				new_addr = idi_addr + sext_imm8 + 1;
 				if (rx == `INSTR_OPCODE_HIGH3_BTEQZ) begin
 					branch = (op1 == 0);
@@ -328,8 +317,8 @@ module id(
 		endcase
 	end
 
-	assign ido_reg1_addr = reg1_addr;
-	assign ido_reg2_addr = reg2_addr;
+	assign ido_reg1_addr = try_r1; //reg1_addr;
+	assign ido_reg2_addr = try_r2; // reg2_addr;
 	assign ido_addr = idi_addr;
 	assign ido_instr = idi_instr;
 	assign ido_alu_opcode = alu_opcode;
