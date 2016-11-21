@@ -69,11 +69,11 @@ module cpu(
 		end
 	end
 	//assign my_clk = cpu_clk;
-	assign my_clk = slow_clk;
+	assign my_clk = cpu_sw[7] ? cpu_clk : slow_clk;
 	
 	wire pci_en;
 	wire [15:0] pci_new_addr;
-	wire pci_branch;
+	wire ido_branch;
 	wire [15:0] pii_addr;
 	wire [15:0] pii_instr;
 	wire [15:0] pci_ram2_data;
@@ -85,7 +85,7 @@ module cpu(
 	pc cpu_pc (
 		.pci_clk(my_clk),
 		.pci_rst(cpu_rst),
-		.pci_branch(pci_branch),
+		.pci_branch(ido_branch),
 		.pci_new_addr(pci_new_addr),
 		.pci_interrupt(scho_interrupt_set_pc),
 		.pci_epc(scho_epc),
@@ -142,6 +142,10 @@ module cpu(
 	wire [3:0] schi_type;
 	wire schi_int;
 	wire [3:0] schi_int_id;
+	wire schi_int_enable;
+	wire schi_int_disable;
+	wire scho_int_en;
+	wire schi_is_in_branch_delay_slot;
 	
 	id cpu_id (
 		.idi_addr(pio_addr),
@@ -162,6 +166,9 @@ module cpu(
 		.idi_cause(0),
 		.ido_int(schi_int),
 		.ido_int_id(schi_int_id),
+		.ido_sched_int_enable(schi_int_enable),
+		.ido_sched_int_disable(schi_int_disable),
+		.idi_sched_int_en(scho_int_en),
 	 
 		.ido_addr(iei_addr),
 		.ido_instr(iei_instr),
@@ -172,8 +179,7 @@ module cpu(
 		.ido_write_to_mem_data(iei_write_to_mem_data),
 		.ido_rwe(iei_rwe),
 		.ido_new_pc(pci_new_addr),
-		.ido_branch(pci_branch),
-		
+		.ido_branch(ido_branch),
 		.ido_reg1_addr(regi_addr1),
 		.ido_reg2_addr(regi_addr2),
 		
@@ -208,6 +214,7 @@ module cpu(
 	wire [3:0] ieo_wreg_addr;
 	wire [1:0] ieo_rwe;
 	wire [15:0] ieo_write_to_mem_data;
+	wire ieo_branch;
 	id_exe cpu_id_exe (
 		.iei_clk(my_clk),
 		.iei_rst(cpu_rst),
@@ -221,6 +228,7 @@ module cpu(
 		.iei_wreg_addr(iei_wreg_addr),
 		.iei_write_to_mem_data(iei_write_to_mem_data),
 		.iei_rwe(iei_rwe),
+		.iei_branch(ido_branch),
 	
 		.ieo_instr(ieo_instr),
 		.ieo_pc(ieo_pc),
@@ -229,7 +237,8 @@ module cpu(
 		.ieo_op2(ieo_op2),
 		.ieo_wreg_addr(ieo_wreg_addr),
 		.ieo_write_to_mem_data(ieo_write_to_mem_data),
-		.ieo_rwe(ieo_rwe)
+		.ieo_rwe(ieo_rwe),
+		.ieo_branch(ieo_branch)
 	);
 	
 	wire [15:0] emi_instr;
@@ -245,13 +254,15 @@ module cpu(
 		.exei_wreg_addr(ieo_wreg_addr),
 		.exei_write_to_mem_data(ieo_write_to_mem_data),
 		.exei_rwe(ieo_rwe),
+		.exei_branch(ieo_branch),
 	
 		.exeo_instr(emi_instr),
 		.exeo_pc(emi_pc),
 		.exeo_result(emi_data),
 		.exeo_wreg_addr(emi_wreg_addr),
 		.exeo_write_to_mem_data(emi_write_to_mem_data),
-		.exeo_rwe(emi_rwe)
+		.exeo_rwe(emi_rwe),
+		.exeo_branch(schi_is_in_branch_delay_slot)
 	);
 	
 	wire emi_en;
@@ -358,7 +369,10 @@ module cpu(
 	scheduler cpu_sched(
 		.schi_clk(my_clk),
 		.schi_rst(cpu_rst),
-		.schi_pause_request(schi_pause_request),
+		.schi_pause_request(schi_pause_request),		.schi_int_enable(schi_int_enable),
+		.schi_int_disable(schi_int_disable),
+		.scho_int_en(scho_int_en),
+	
 		.schi_count(schi_count),
 		.schi_type(schi_type),
 		
@@ -370,7 +384,9 @@ module cpu(
 		.scho_interrupt_set_pc(scho_interrupt_set_pc),
 		.scho_epc_in(scho_epc_in),
 		.scho_test_int_id(scho_test_int_id),
-	
+		.schi_is_in_branch_delay_slot(schi_is_in_branch_delay_slot),
+		.schi_is_branch_instr(ido_branch),
+
 		.scho_pc_en(pci_en),
 		.scho_pi_en(pii_en),
 		.scho_ie_en(iei_en),
@@ -395,7 +411,7 @@ module cpu(
 	assign cpu_led[14:8] = rego_debug_data;
 	assign cpu_led[7:0] = mwi_result[7:0];
 	assign cpu_digit_data = pii_addr[7:0]; 
-	assign regi_debug_addr = cpu_sw[7:0];
+	assign regi_debug_addr = cpu_sw[3:0];
 	
 	//assign ram1_en = 0;
 	//assign ram1_we = 1;

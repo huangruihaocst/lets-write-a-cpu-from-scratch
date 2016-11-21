@@ -24,15 +24,19 @@ module scheduler(
 	input schi_rst,
 	input schi_int_disable,
 	input schi_int_enable,
+	output scho_int_en,
 	input schi_pause_request,
 	input [3:0] schi_count,
 	input [3:0] schi_type,
 	
 	input schi_hard_int,
 	input schi_int,
+	input schi_is_in_branch_delay_slot,
+	input schi_is_branch_instr,
 	input [3:0] schi_int_id,
 	input [15:0] schi_epc,
 	output [15:0] scho_epc,
+	output [15:0] scho_ecause,
 	output scho_interrupt_set_pc,
 	output [15:0] scho_epc_in,
 	output [3:0] scho_test_int_id,
@@ -45,6 +49,8 @@ module scheduler(
 	output scho_reg_en,
 	output scho_read_from_last2
     );
+	
+	reg interrupt_en;
 	reg pc_en;
 	reg pi_en;
 	reg ie_en;
@@ -61,21 +67,41 @@ module scheduler(
 	reg [15:0] epc_buf_soft;
 	reg [15:0] epc_buf_hard;
 	reg [3:0] int_id_buf;
-	reg interrupt_set_pc;
 	
+	reg is_in_branch_delay_slot;
+	reg is_branch_instr;
+	reg interrupt_set_pc;
 	reg int_p1;
 	reg int_p2;
 	reg hard_int_p1;
 	reg hard_int_p2;
+	
+	reg [15:0] ecause;
+	// 没有处理延迟操中发生中断的情况
+	always @(posedge schi_int_enable or posedge schi_int_disable or negedge schi_rst) begin 
+		if (schi_rst == 0) begin
+			interrupt_en = 0;
+		end
+		else if (schi_int_enable) begin
+			interrupt_en = 1;
+		end else begin
+			interrupt_en = 0;
+		end
+	end
+	assign scho_int_en = interrupt_en;
 	
 	// hard int is a edge triggered signal
 	always @(negedge schi_hard_int or negedge schi_rst) begin
 		if (schi_rst == 0) begin
 			hard_int_p1 = 0;
 			epc_buf_hard = 0;
-		end else begin
+			is_in_branch_delay_slot = 0;
+			is_branch_instr = 0;
+		end else if (interrupt_en) begin
 			hard_int_p1 = ~hard_int_p1;
 			epc_buf_hard = schi_epc;
+			is_in_branch_delay_slot = schi_is_in_branch_delay_slot;
+			is_branch_instr = schi_is_branch_instr;
 		end
 	end
 	// soft int is level triggered signal
@@ -85,57 +111,42 @@ module scheduler(
 			interrupt_set_pc = 0;
 			int_p2 = 0;
 			hard_int_p2 = 0;
-		end else begin
+			ecause = 0;
+		end else if (interrupt_en) begin
 			if (schi_int) begin
 				// pending soft int or eret
 				interrupt_set_pc = 1;
 				if (schi_int_id == 4'b1111) begin
 					epc_out = epc_in;
+					ecause = `ECAUSE_NO_EXCEPTION;
 				end else begin
 					epc_out = 16'h4;
 					epc_in = schi_epc + 1;
+					ecause = schi_int_id;
 				end
 			end else if (hard_int_p2 != hard_int_p1) begin
 				hard_int_p2 = hard_int_p1;
 				// pending hard int
 				interrupt_set_pc = 1;
 				epc_out = 16'h4;
-				epc_in = epc_buf_hard + 1;
+				ecause = `ECAUSE_EXTERNAL;
+				if (is_in_branch_delay_slot) begin
+					epc_in = epc_buf_hard - 1;
+				end else if (is_branch_instr) begin
+					epc_in = epc_buf_hard;
+				end else begin 
+					epc_in = epc_buf_hard + 1;
+				end
+				
 			end else begin
 				interrupt_set_pc = 0;
 			end
 		end
 	end
 	
-//	always begin
-//		if (schi_int) begin
-//			interrupt_set_pc = 1;
-//			if (schi_int_id == `INT_ID_ERET) begin
-//				epc_out = epc_in;
-//			end else begin
-//				epc_out = 16'h4;
-//			end
-//		end else if (schi_hard_int) begin
-//			interrupt_set_pc = 1;
-//			epc_out = 16'h4;
-//		end else begin
-//			interrupt_set_pc = 0;
-//		end
-//	end
-//	always @(posedge schi_hard_int or posedge schi_int or negedge schi_rst) begin
-//		if (schi_rst == 0) begin
-//			epc_in = 0;
-//		end else if (schi_int) begin
-//			if (schi_int_id != `INT_ID_ERET) begin		
-//				epc_in = schi_epc;
-//			end
-//		end else if (schi_hard_int) begin
-//			epc_in = schi_epc;
-//		end
-//	end
-	
 	assign scho_epc = epc_out;
 	assign scho_epc_in = epc_in;
+	assign scho_ecause = ecause;
 	assign scho_interrupt_set_pc = interrupt_set_pc;
 	assign scho_test_int_id = int_id_buf;
 	

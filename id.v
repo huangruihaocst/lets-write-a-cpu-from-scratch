@@ -41,6 +41,9 @@ module id(
 	 input [7:0] idi_cause,
 	 output ido_int,
 	 output [3:0] ido_int_id,
+	 input idi_sched_int_en,
+	 output ido_sched_int_enable,
+	 output ido_sched_int_disable,
 	 
 	 output [15:0] ido_addr,
 	 output [15:0] ido_instr,
@@ -88,8 +91,6 @@ module id(
 	assign imm5 = idi_instr[4:0];
 	assign sext_imm5 = {{11{imm5[4]}}, imm5};
 	
-	reg [3:0] reg1_addr;
-	reg [3:0] reg2_addr;
 	reg [7:0] alu_opcode;
 	reg [15:0] op1;
 	reg [15:0] op2;
@@ -103,13 +104,13 @@ module id(
 	reg pause_request;
 	reg int_happened;
 	reg [3:0] int_id;
+	reg interrupt_enable;
+	reg interrupt_disable;
 	
 	initial begin
 		op1 = 16'hee;
 		op2 = 16'hcc;
 		wreg_addr = 4'ha;
-		reg1_addr = 0;
-		reg2_addr = 0;
 		alu_opcode = `ALU_OPCODE_ADD;
 		rwe = `RWE_IDLE;
 		new_addr = 0;
@@ -122,6 +123,8 @@ module id(
 		int_id = 0;
 		try_r1 = `REG_INVALID;
 		try_r2 = `REG_INVALID;
+		interrupt_enable = 0;
+		interrupt_disable = 0;
 	end
 	
 	// solve register data conflict
@@ -160,8 +163,8 @@ module id(
 
 	always @* begin
 		// default is nop
-		reg1_addr = `REG_INVALID;
-		reg2_addr = `REG_INVALID;
+		try_r1 = `REG_INVALID;
+		try_r2 = `REG_INVALID;
 		wreg_addr = `REG_INVALID;
 		branch = 0;
 		op1 = 0;
@@ -173,6 +176,8 @@ module id(
 		pause_request = 0;
 		int_happened = 0;
 		int_id = 0;
+		interrupt_enable = 0;
+		interrupt_disable = 0;
 		case (opcode5)
 			`INSTR_OPCODE5_NOP: begin
 			end
@@ -260,6 +265,26 @@ module id(
 					rwe = `RWE_WRITE_REG;
 				end
 			end
+			`INSTR_OPCODE5_MFTIH: begin
+				if (idi_instr[7:0] == `INSTR_OPCODE_LOW8_MFIH) begin
+					op1 = {idi_sched_int_en, 7'h0, idi_cause};
+					op2 = 0;
+					wreg_addr = rx;
+					alu_opcode = `ALU_OPCODE_AND;
+					rwe = `RWE_WRITE_REG;
+				end else if (idi_instr[7:0] == `INSTR_OPCODE_LOW8_MTIH) begin
+					try_r1 = rx;
+					if (idi_sched_int_en != r1_data[15]) begin
+						if (r1_data[15]) begin
+							// enable interrupt
+							interrupt_enable = 1;
+						end else begin
+							// disable interrupt
+							interrupt_disable = 1;
+						end
+					end
+				end
+			end
 			// Memory instructions
 			`INSTR_OPCODE5_LW: begin
 				try_r1 = rx;
@@ -334,4 +359,6 @@ module id(
 	assign ido_sched_type = sched_type;
 	assign ido_int = int_happened;
 	assign ido_int_id = int_id;
+	assign ido_sched_int_enable = interrupt_enable;
+	assign ido_sched_int_disable = interrupt_disable;
 endmodule
