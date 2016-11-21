@@ -28,13 +28,15 @@ module exe(
 	 input [3:0] exei_wreg_addr,
 	 input [15:0] exei_write_to_mem_data, 
 	 input [1:0] exei_rwe,
+	 input exei_branch,
 	
 	 output [15:0] exeo_instr,
 	 output [15:0] exeo_pc,
 	 output [15:0] exeo_result,
 	 output [3:0] exeo_wreg_addr,
 	 output [15:0] exeo_write_to_mem_data,
-	 output [1:0] exeo_rwe
+	 output [1:0] exeo_rwe,
+	 output exeo_branch
 	 );
 	reg [15:0] result;
 
@@ -74,4 +76,5 @@ module exe(
 	assign exeo_wreg_addr = exei_wreg_addr;
 	assign exeo_rwe = exei_rwe;
 	assign exeo_write_to_mem_data = exei_write_to_mem_data;
+	assign exeo_branch = exei_branch;
 endmodule
