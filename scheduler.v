@@ -22,6 +22,8 @@
 module scheduler(
 	input schi_clk,
 	input schi_rst,
+	input schi_int_disable,
+	input schi_int_enable,
 	input schi_pause_request,
 	input [3:0] schi_count,
 	input [3:0] schi_type,
@@ -66,17 +68,7 @@ module scheduler(
 	reg hard_int_p1;
 	reg hard_int_p2;
 	
-//	always @(negedge schi_int or negedge schi_rst) begin
-//		if (schi_rst == 0) begin
-//			int_p1 = 0;
-//			epc_buf_soft = 0;
-//			int_id_buf = 0;
-//		end else begin
-//			int_p1 = ~int_p1;
-//			epc_buf_soft = schi_epc;
-//			int_id_buf = schi_int_id;
-//		end
-//	end
+	// hard int is a edge triggered signal
 	always @(negedge schi_hard_int or negedge schi_rst) begin
 		if (schi_rst == 0) begin
 			hard_int_p1 = 0;
@@ -86,6 +78,7 @@ module scheduler(
 			epc_buf_hard = schi_epc;
 		end
 	end
+	// soft int is level triggered signal
 	always @(negedge schi_rst or posedge schi_clk) begin
 		if (schi_rst == 0) begin
 			epc_out = 0;
@@ -95,7 +88,6 @@ module scheduler(
 		end else begin
 			if (schi_int) begin
 				// pending soft int or eret
-				
 				interrupt_set_pc = 1;
 				if (schi_int_id == 4'b1111) begin
 					epc_out = epc_in;
@@ -106,7 +98,6 @@ module scheduler(
 			end else if (hard_int_p2 != hard_int_p1) begin
 				hard_int_p2 = hard_int_p1;
 				// pending hard int
-				
 				interrupt_set_pc = 1;
 				epc_out = 16'h4;
 				epc_in = epc_buf_hard + 1;
