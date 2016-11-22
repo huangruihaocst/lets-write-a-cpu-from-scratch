@@ -105,7 +105,7 @@ module id(
 	reg int_happened;
 	reg [3:0] int_id;
 	reg interrupt_enable;
-	reg interrupt_disable;
+	reg interrupt_edge_signal;
 	
 	initial begin
 		op1 = 16'hee;
@@ -124,7 +124,7 @@ module id(
 		try_r1 = `REG_INVALID;
 		try_r2 = `REG_INVALID;
 		interrupt_enable = 0;
-		interrupt_disable = 0;
+		interrupt_edge_signal = 1;
 	end
 	
 	// solve register data conflict
@@ -176,8 +176,7 @@ module id(
 		pause_request = 0;
 		int_happened = 0;
 		int_id = 0;
-		interrupt_enable = 0;
-		interrupt_disable = 0;
+		interrupt_edge_signal = 0;
 		case (opcode5)
 			`INSTR_OPCODE5_NOP: begin
 			end
@@ -270,7 +269,7 @@ module id(
 					op1 = {idi_sched_int_en, 7'h0, idi_cause};
 					op2 = 0;
 					wreg_addr = rx;
-					alu_opcode = `ALU_OPCODE_AND;
+					alu_opcode = `ALU_OPCODE_ADD;
 					rwe = `RWE_WRITE_REG;
 				end else if (idi_instr[7:0] == `INSTR_OPCODE_LOW8_MTIH) begin
 					try_r1 = rx;
@@ -278,9 +277,11 @@ module id(
 						if (r1_data[15]) begin
 							// enable interrupt
 							interrupt_enable = 1;
+							interrupt_edge_signal = 1;
 						end else begin
 							// disable interrupt
-							interrupt_disable = 1;
+							interrupt_enable = 0;
+							interrupt_edge_signal = 1;
 						end
 					end
 				end
@@ -360,5 +361,5 @@ module id(
 	assign ido_int = int_happened;
 	assign ido_int_id = int_id;
 	assign ido_sched_int_enable = interrupt_enable;
-	assign ido_sched_int_disable = interrupt_disable;
+	assign ido_sched_int_disable = interrupt_edge_signal;
 endmodule

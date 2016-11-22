@@ -48,7 +48,10 @@ module cpu(
 	 output uart_wrn,
 	 output uart_rdn,
 	 input uart_framing_error,
-	 input uart_parity_error
+	 input uart_parity_error,
+	 
+	 input cpu_ps2_data,
+	 input cpu_ps2_clk
     );
 	
 	wire my_clk;
@@ -62,7 +65,8 @@ module cpu(
 			slow_clk = 0;
 		end else begin
 			counter = counter + 1;
-			if (counter == {8'h0, cpu_sw[15:8], 16'h0}) begin
+			// if cpu_sw[6] is on, then clk is 12.5MHz
+			if (counter == {8'h0, cpu_sw[15:12], 16'h0, cpu_sw[11:8]}) begin
 				counter = 0;
 				slow_clk = !slow_clk;
 			end
@@ -146,6 +150,7 @@ module cpu(
 	wire schi_int_disable;
 	wire scho_int_en;
 	wire schi_is_in_branch_delay_slot;
+	wire [7:0] scho_ecause;
 	
 	id cpu_id (
 		.idi_addr(pio_addr),
@@ -163,7 +168,7 @@ module cpu(
 		.idi_last3_result(regi_wdata),
 		.idi_last3_wrn(regi_wrn),
 		
-		.idi_cause(0),
+		.idi_cause(scho_ecause),
 		.ido_int(schi_int),
 		.ido_int_id(schi_int_id),
 		.ido_sched_int_enable(schi_int_enable),
@@ -294,7 +299,9 @@ module cpu(
 	
 	wire [15:0] mwi_instr;
 	wire [15:0] mwi_pc;
-
+	
+	wire [7:0] memi_buffered_ps2_scan_code;
+	
 	mem cpu_mem(
 		.memi_instr(emo_instr),
 		.memi_pc(emo_pc),
@@ -317,7 +324,9 @@ module cpu(
 		
 		.memi_uart_data_ready(uart_data_ready),
 		.memo_uart_wrn(uart_wrn),
-		.memo_uart_rdn(uart_rdn)
+		.memo_uart_rdn(uart_rdn),
+	
+		.memi_ps2_scan_code(memi_buffered_ps2_scan_code)
 	);
 	
 	wire mwi_en;
@@ -365,11 +374,17 @@ module cpu(
 	wire [15:0] scho_epc_in;
 	wire [3:0] scho_test_int_id;
 	
+	wire ps2_data_ready;
+	wire [7:0] ps2_scan_code;
+	wire ps2_rdn;
+	
+	wire scho_handling_interrupt;
 	assign schi_hard_int = ~cpu_btn[0];
 	scheduler cpu_sched(
 		.schi_clk(my_clk),
 		.schi_rst(cpu_rst),
-		.schi_pause_request(schi_pause_request),		.schi_int_enable(schi_int_enable),
+		.schi_pause_request(schi_pause_request),		
+		.schi_int_enable(schi_int_enable),
 		.schi_int_disable(schi_int_disable),
 		.scho_int_en(scho_int_en),
 	
@@ -381,12 +396,19 @@ module cpu(
 		.schi_int_id(schi_int_id),
 		.schi_epc(pio_addr),
 		.scho_epc(scho_epc),
+		.scho_ecause(scho_ecause),
 		.scho_interrupt_set_pc(scho_interrupt_set_pc),
 		.scho_epc_in(scho_epc_in),
 		.scho_test_int_id(scho_test_int_id),
 		.schi_is_in_branch_delay_slot(schi_is_in_branch_delay_slot),
 		.schi_is_branch_instr(ido_branch),
-
+		.scho_handling_interrupt(scho_handling_interrupt),
+		
+		.schi_ps2_data_ready(ps2_data_ready),
+		.schi_ps2_scan_code(ps2_scan_code),
+		.scho_ps2_rdn(ps2_rdn),
+		.scho_ps2_scan_code(memi_buffered_ps2_scan_code),
+		
 		.scho_pc_en(pci_en),
 		.scho_pi_en(pii_en),
 		.scho_ie_en(iei_en),
@@ -395,21 +417,34 @@ module cpu(
 		.scho_reg_en(regi_en),
 		
 		.scho_read_from_last2(scho_read_from_last2)
-
 	);
 
-//	assign cpu_led[7:0] =mwo_result[7:0];
-//	assign cpu_led[15] = pci_en;
-//	assign cpu_led[14] = pii_en;
-//	assign cpu_led[13] = iei_en;
-//	assign cpu_led[12] = emi_en;
-//	assign cpu_led[11] = mwi_en;
-//	assign cpu_led[10] = schi_pause_request;
-//	assign cpu_led[9] = uart_rdn;
-//	assign cpu_led[8] = uart_data_ready;
-	assign cpu_led[15] = uart_data_ready;
-	assign cpu_led[14:8] = rego_debug_data;
-	assign cpu_led[7:0] = mwi_result[7:0];
+	keyboard cpu_keyboard(
+		.datain(cpu_ps2_data),
+		.clkin(cpu_ps2_clk),
+		.fclk(cpu_clk50),
+		.rst(cpu_rst),
+		.rdn(ps2_rdn),
+		.data_ready(ps2_data_ready),
+		.scancode(ps2_scan_code)
+	);
+
+	reg [7:0] cnt;
+	always @(negedge cpu_rst or posedge scho_interrupt_set_pc) begin
+		if (cpu_rst == 0) begin
+			cnt = 0;
+		end else begin
+			cnt = cnt + 1;
+		end
+	end
+	assign cpu_led[15] = scho_int_en;
+	assign cpu_led[14] = schi_int_enable;
+	assign cpu_led[13] = schi_int_disable;
+	assign cpu_led[12] = scho_handling_interrupt;
+	assign cpu_led[11] = scho_interrupt_set_pc;
+	assign cpu_led[10] = ps2_data_ready;
+	assign cpu_led[9] = ps2_rdn;
+	assign cpu_led[8:0] = scho_epc;
 	assign cpu_digit_data = pii_addr[7:0]; 
 	assign regi_debug_addr = cpu_sw[3:0];
 	

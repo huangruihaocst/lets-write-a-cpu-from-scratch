@@ -41,7 +41,10 @@ module mem(
 	 
 	 output memo_uart_wrn,
 	 output memo_uart_rdn,
-	 input memi_uart_data_ready
+	 input memi_uart_data_ready,
+	 
+	 input [7:0] memi_ps2_scan_code,
+	 input memi_ps2_data_ready
     );
 	 
 	reg [15:0] result;
@@ -88,6 +91,12 @@ module mem(
 					uart_rdn = 1;
 					ram1_oe = 1;
 					result = memi_uart_data_ready ? 16'h3 : 16'h1; //{14'h1f, memi_uart_data_ready, 1};
+					currently_reading_uart = 0;
+				end else if (addr == `ADDR_KEYBOARD) begin
+					// read keyboard;
+					uart_rdn = 1;
+					ram1_oe = 1;
+					result = memi_ps2_scan_code;
 					currently_reading_uart = 0;
 				end else begin	
 					uart_rdn = 1;
