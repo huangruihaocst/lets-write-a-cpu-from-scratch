@@ -10,6 +10,7 @@ reg [4:0] state;
 reg data, clk1, clk2;
 reg [7:0] code;
 reg dataready;
+reg p2, p1;
 wire clk, odd;
 
 localparam  DELAY   = 5'b00000,
@@ -29,6 +30,8 @@ localparam  DELAY   = 5'b00000,
 initial begin
 	state = 0;
 	dataready = 0;
+	p1 = 0;
+	p2 = 0;
 end
 
 assign data_ready = dataready;
@@ -45,6 +48,7 @@ end
 always @(posedge fclk or negedge rst) begin
     if (rst == 0) begin
         // reset
+		  p2 <= 0;
 		  dataready <= 0;
         state   <= DELAY;
         code    <= 8'b00000000;
@@ -52,13 +56,15 @@ always @(posedge fclk or negedge rst) begin
     else begin
 	 //when rdn is enabled (means the data is read over)
 	 //we can set the dataready back to zero
-		  if (rdn && dataready == 1) begin
-				dataready = 0;
+		  if (p2 != p1) begin
+				 p2 <= p1;
+				 dataready <= 0;
 		  end
         case (state)
         DELAY:
             state <= START;
         START:
+		  begin
             if (clk) begin
                 if (!datain) begin
                     state <= D0;
@@ -66,6 +72,7 @@ always @(posedge fclk or negedge rst) begin
                     state <= DELAY;
                 end
             end
+		  end
         D0:
             if (clk) begin
                 code[0] <= data;
@@ -130,6 +137,14 @@ always @(posedge fclk or negedge rst) begin
             end
         endcase
     end
+end
+
+always @(posedge rdn, negedge rst)  begin
+	if (rst == 0)
+		p1 <= 0;
+	else begin
+		p1 <= ~p1;
+	end
 end
 
 endmodule
