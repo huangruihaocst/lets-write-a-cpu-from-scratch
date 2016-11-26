@@ -39,6 +39,7 @@ module exe(
 	 output exeo_branch
 	 );
 	reg [15:0] result;
+	reg [31:0] intermediate;
 
 	initial begin
 		result = 1;
@@ -58,11 +59,18 @@ module exe(
 			`ALU_OPCODE_AND: begin
 				result = exei_op1 & exei_op2;
 			end
+			`ALU_OPCODE_OR: begin
+				result = exei_op1 | exei_op2;
+			end
 			`ALU_OPCODE_CMP: begin
-				result = exei_op1 == exei_op2 ? 1 : 0;
+				result = exei_op1 == exei_op2 ? 0 : 1;
 			end
 			`ALU_OPCODE_SHIFT_LEFT: begin
-				result = exei_op1 << 8;
+				result = exei_op1 << exei_op2[3:0];
+			end
+			`ALU_OPCODE_SHIFT_RIGHT_ARITH: begin
+				intermediate = {{16{exei_op1[15]}}, exei_op1};
+				result = intermediate >> exei_op2[3:0];
 			end
 			default: begin
 				result = 16'hfe;

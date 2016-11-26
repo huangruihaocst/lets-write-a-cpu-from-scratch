@@ -105,14 +105,14 @@ module scheduler(
 	always @(negedge schi_hard_int or negedge schi_rst) begin
 		if (schi_rst == 0) begin
 			hard_int_p1 = 0;
-			epc_buf_hard = 0;
-			is_in_branch_delay_slot = 0;
-			is_branch_instr = 0;
+			//epc_buf_hard = 0;
+			//is_in_branch_delay_slot = 0;
+			//is_branch_instr = 0;
 		end else if (interrupt_en) begin
 			hard_int_p1 = ~hard_int_p1;
-			epc_buf_hard = schi_epc;
-			is_in_branch_delay_slot = schi_is_in_branch_delay_slot;
-			is_branch_instr = schi_is_branch_instr;
+			//epc_buf_hard = schi_epc;
+			//is_in_branch_delay_slot = schi_is_in_branch_delay_slot;
+			//is_branch_instr = schi_is_branch_instr;
 		end
 	end
 	

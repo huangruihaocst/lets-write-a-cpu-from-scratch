@@ -65,8 +65,7 @@ module cpu(
 			slow_clk = 0;
 		end else begin
 			counter = counter + 1;
-			// if cpu_sw[6] is on, then clk is 12.5MHz
-			if (counter == {8'h0, cpu_sw[15:12], 16'h0, cpu_sw[11:8]}) begin
+			if (counter == {8'h0, cpu_sw[15:14], 10'h0, cpu_sw[13:12], 6'h0, cpu_sw[11:8]}) begin
 				counter = 0;
 				slow_clk = !slow_clk;
 			end
@@ -301,8 +300,11 @@ module cpu(
 	wire [15:0] mwi_pc;
 	
 	wire [7:0] memi_buffered_ps2_scan_code;
-	
+	wire memo_data_ready;
+	wire memo_currently_reading_uart;
 	mem cpu_mem(
+		.memi_rst(cpu_rst),
+		.memi_clk(cpu_clk50),
 		.memi_instr(emo_instr),
 		.memi_pc(emo_pc),
 		.memi_data(emo_data),
@@ -326,7 +328,11 @@ module cpu(
 		.memo_uart_wrn(uart_wrn),
 		.memo_uart_rdn(uart_rdn),
 	
-		.memi_ps2_scan_code(memi_buffered_ps2_scan_code)
+		.memi_ps2_scan_code(memi_buffered_ps2_scan_code),
+		
+		.memo_data_ready(memo_data_ready),
+		.memo_currently_reading_uart(memo_currently_reading_uart),
+		.uart_writeable(uart_writeable)
 	);
 	
 	wire mwi_en;
@@ -430,37 +436,32 @@ module cpu(
 	);
 
 	reg [7:0] cnt;
-	always @(negedge cpu_rst or posedge scho_interrupt_set_pc) begin
+	reg [7:0] cnt_data;
+	always @(negedge cpu_rst or negedge uart_wrn) begin
 		if (cpu_rst == 0) begin
 			cnt = 0;
+			cnt_data = 0;
 		end else begin
 			cnt = cnt + 1;
+			cnt_data = ram1_data_bus[7:0];
 		end
 	end
-	assign cpu_led[15] = scho_int_en;
-	assign cpu_led[14] = schi_int_enable;
-	assign cpu_led[13] = schi_int_disable;
-	assign cpu_led[12] = scho_handling_interrupt;
-	assign cpu_led[11] = scho_interrupt_set_pc;
-	assign cpu_led[10] = ps2_data_ready;
-	assign cpu_led[9] = ps2_rdn;
-	assign cpu_led[8:0] = scho_epc;
+	assign cpu_led[15] = uart_data_ready;
+	assign cpu_led[14] = uart_rdn;
+	assign cpu_led[13] = memo_data_ready;
+	assign cpu_led[12] = uart_writeable;
+	//assign cpu_led[11:10] = emo_rwe;
+	//assign cpu_led[9:8] = 0;
+	assign cpu_led[7:0] = emo_data;
+	assign cpu_led[11:8] = cnt;
+	//assign cpu_led[7:0] = cnt_data;
+	//assign cpu_led[8:0] = rego_debug_data;
 	assign cpu_digit_data = pii_addr[7:0]; 
 	assign regi_debug_addr = cpu_sw[3:0];
-	
-	//assign ram1_en = 0;
-	//assign ram1_we = 1;
-	//assign ram1_oe = 1;
-	//assign ram1_addr_bus = 16'h0;
-	//assign ram1_data_bus = 16'hZZ;
 	
 	assign ram2_en = 0;
 	assign ram2_we = 1;
 	assign ram2_oe = pco_ram2_oe;
 	assign ram2_addr_bus = pii_addr;
 	assign pci_ram2_data = ram2_data_bus;
-	
-	//assign uart_wrn = 1;
-	//assign uart_rdn = 1;
-
 endmodule

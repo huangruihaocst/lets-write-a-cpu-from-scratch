@@ -90,6 +90,7 @@ module id(
 	assign zext_imm8 = {8'h0, imm8};
 	assign imm5 = idi_instr[4:0];
 	assign sext_imm5 = {{11{imm5[4]}}, imm5};
+	assign sext_imm4 = {{12{idi_instr[3]}}, idi_instr[3:0]};
 	
 	reg [7:0] alu_opcode;
 	reg [15:0] op1;
@@ -206,6 +207,16 @@ module id(
 				alu_opcode = `ALU_OPCODE_ADD;
 				rwe = `RWE_WRITE_REG;
 			end
+			`INSTR_OPCODE5_ADDIU3: begin
+				if (idi_instr[4] == 0) begin
+					try_r1 = rx;
+					op1 = r1_data;
+					op2 = sext_imm4;
+					wreg_addr = ry;
+					alu_opcode = `ALU_OPCODE_ADD;
+					rwe = `RWE_WRITE_REG;
+				end
+			end
 			`INSTR_OPCODE5_SUBU: begin
 				if (idi_instr[1:0] == `INSTR_OPCODE_LOW2_SUBU) begin
 					try_r1 = rx;
@@ -214,6 +225,14 @@ module id(
 					op2 = r2_data;
 					wreg_addr = rz;
 					alu_opcode = `ALU_OPCODE_SUB;
+					rwe = `RWE_WRITE_REG;
+				end else if (idi_instr[1:0] == `INSTR_OPCODE_LOW2_ADDU) begin
+					try_r1 = rx;
+					try_r2 = ry;
+					op1 = r1_data;
+					op2 = r2_data;
+					wreg_addr = rz;
+					alu_opcode = `ALU_OPCODE_ADD;
 					rwe = `RWE_WRITE_REG;
 				end
 			end
@@ -224,13 +243,20 @@ module id(
 				alu_opcode = `ALU_OPCODE_ADD;
 				rwe = `RWE_WRITE_REG;
 			end
-			`INSTR_OPCODE5_SLL: begin
+			`INSTR_OPCODE5_SHIFT: begin
 				if (idi_instr[1:0] == `INSTR_OPCODE_LOW2_SLL) begin
 					try_r1 = ry;
 					op1 = r1_data;
 					op2 = (idi_instr[4:2] == 3'b000) ? 16'h8 : idi_instr[4:2];
 					wreg_addr = rx;
 					alu_opcode = `ALU_OPCODE_SHIFT_LEFT;
+					rwe = `RWE_WRITE_REG;
+				end else if (idi_instr[1:0] == `INSTR_OPCODE_LOW2_SRA) begin
+					try_r1 = ry;
+					op1 = r1_data;
+					op2 = (idi_instr[4:2] == 3'b000) ? 16'h8 : idi_instr[4:2];
+					wreg_addr = rx;
+					alu_opcode = `ALU_OPCODE_SHIFT_RIGHT_ARITH;
 					rwe = `RWE_WRITE_REG;
 				end
 			end
@@ -261,6 +287,14 @@ module id(
 					op2 = r2_data;
 					wreg_addr = rx;
 					alu_opcode = `ALU_OPCODE_AND;
+					rwe = `RWE_WRITE_REG;
+				end else if (idi_instr[4:0] == `INSTR_OPCODE_LOW5_OR) begin
+					try_r1 = rx;
+					try_r2 = ry;
+					op1 = r1_data;
+					op2 = r2_data;
+					wreg_addr = rx;
+					alu_opcode = `ALU_OPCODE_OR;
 					rwe = `RWE_WRITE_REG;
 				end
 			end
