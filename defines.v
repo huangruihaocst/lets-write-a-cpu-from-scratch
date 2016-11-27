@@ -52,6 +52,7 @@
 `define ADDR_SERIAL_PORT			16'hbf00
 `define ADDR_SERIAL_PORT_STATE	16'hbf01
 `define ADDR_KEYBOARD				16'hbf05
+`define ADDR_RAM1_START				16'h8000
 
 `define ECAUSE_NO_EXCEPTION		16'h00
 `define ECAUSE_ERET					16'h0f

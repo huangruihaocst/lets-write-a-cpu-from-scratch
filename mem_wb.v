@@ -23,6 +23,7 @@ module mem_wb(
 	 input mwi_clk,
 	 input mwi_rst,
 	 input mwi_en,
+	 input mwi_keep,
 	 
 	 input [15:0] mwi_instr,
 	 input [15:0] mwi_pc,
@@ -58,12 +59,22 @@ module mem_wb(
 			result = 16'hdd;
 			wreg_addr = `REG_INVALID;
 			wrn = 0;
-		end else if (mwi_en) begin
-			instr = mwi_instr;
-			pc = mwi_pc;
-			result = mwi_result;
-			wreg_addr = mwi_wreg_addr;
-			wrn = mwi_reg_wrn;
+		end else begin
+			if (!mwi_en) begin
+				instr = 0;
+				pc = 0;
+				result = 16'hdd;
+				wreg_addr = `REG_INVALID;
+				wrn = 0;
+			end else if (mwi_keep) begin
+				// keep
+			end else begin
+				instr = mwi_instr;
+				pc = mwi_pc;
+				result = mwi_result;
+				wreg_addr = mwi_wreg_addr;
+				wrn = mwi_reg_wrn;
+			end
 		end
 	end
 	

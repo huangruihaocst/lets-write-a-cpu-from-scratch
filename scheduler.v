@@ -26,6 +26,7 @@ module scheduler(
 	input schi_int_enable,
 	output scho_int_en,
 	input schi_pause_request,
+	input schi_access_ram2_pause_request,
 	input [3:0] schi_count,
 	input [3:0] schi_type,
 	
@@ -51,6 +52,11 @@ module scheduler(
 	output scho_ie_en,
 	output scho_em_en,
 	output scho_mw_en,
+	output scho_pc_keep,
+	output scho_pi_keep,
+	output scho_ie_keep,
+	output scho_em_keep,
+	output scho_mw_keep,
 	output scho_reg_en,
 	output scho_read_from_last2,
 	output scho_handling_interrupt
@@ -62,6 +68,11 @@ module scheduler(
 	reg ie_en;
 	reg em_en;
 	reg mw_en;
+	reg pc_keep;
+	reg pi_keep;
+	reg ie_keep;
+	reg em_keep;
+	reg mw_keep;
 	reg reg_en;
 	
 	reg rest;
@@ -217,31 +228,64 @@ module scheduler(
 	assign scho_test_int_id = int_id_buf;
 	
 	reg [3:0] pause_for_int;
+	reg ram2_a;
 	// pause assembly line
 	always @(negedge schi_rst or posedge schi_clk) begin
 		if (schi_rst == 0) begin
-			pc_en = 1;
-			pi_en = 1;
-			ie_en = 1;
-			em_en = 1;
-			mw_en = 1;
+//			pc_en = 1;
+//			pi_en = 1;
+//			ie_en = 1;
+//			em_en = 1;
+//			mw_en = 1;
+//			pc_keep = 0;
+//			pi_keep = 0;
+//			ie_keep = 0;
+//			em_keep = 0;
+//			mw_keep = 0;
 			reg_en = 1;
 			rest = 0;
 			a = 0;
 		end else begin
 			if (schi_pause_request) begin
-				a = ~a;
+				a = 1;
+			end else begin
+				a = 0;
 			end
 		end
 	end
-//	assign scho_pc_en = ~schi_pause_request || a;
-//	assign scho_pi_en = ~schi_pause_request || a;
-//	assign scho_ie_en = ~schi_pause_request || a;
+	
+	always @* begin
+		pc_en = 1;
+		pi_en = 1;
+		ie_en = 1;
+		em_en = 1;
+		mw_en = 1;
+		pc_keep = 0;
+		pi_keep = 0;
+		ie_keep = 0;
+		em_keep = 0;
+		mw_keep = 0;
+		if (schi_pause_request && !a) begin
+			pc_keep = 1;
+			pi_keep = 1;
+			ie_en = 0;
+		end else if (schi_access_ram2_pause_request) begin
+			pc_en = 0;
+		end
+	end
+	
 	assign scho_pc_en = pc_en;
-	assign scho_pi_en = ~interrupt_set_pc;
+	//assign scho_pi_en = ~interrupt_set_pc;
+	assign scho_pi_en = pi_en;
 	assign scho_ie_en = ie_en;
 	assign scho_em_en = em_en;
 	assign scho_mw_en = mw_en;
+	
+	assign scho_pc_keep = pc_keep;
+	assign scho_pi_keep = pi_keep;
+	assign scho_ie_keep = ie_keep;
+	assign scho_em_keep = em_keep;
+	assign scho_mw_keep = mw_keep;
 	assign scho_reg_en = reg_en;
 	assign scho_read_from_last2 = a;
 endmodule

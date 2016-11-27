@@ -41,6 +41,12 @@ module mem(
 	 output [15:0] memo_ram1_addr,
 	 inout [15:0] memio_ram1_data,
 	 
+	 output memo_ram2_we,
+	 output memo_ram2_oe,
+	 output [15:0] memo_ram2_addr,
+	 inout [15:0] memio_ram2_data,
+	 output memo_ram2_pause_request,
+	 
 	 output memo_uart_wrn,
 	 output memo_uart_rdn,
 	 input memi_uart_data_ready,
@@ -64,15 +70,27 @@ module mem(
 	reg currently_reading_uart;
 	reg data_ready = 0;
 	
+	reg ram2_we;
+	reg ram2_oe;
+	reg [15:0] ram2_addr;
+	reg [15:0] ram2_data;
+	reg ram2_pause_request;
+	reg write_to_ram2;
+	
 	initial begin
 		ram1_en = 0;
 		ram1_oe = 1;
 		ram1_we = 1;
+		ram2_we = 1;
+		ram2_oe = 1;
+		ram2_pause_request = 0;
+		write_to_ram2 = 0;
 		data = 16'hcc;
 		uart_wrn = 1;
 		uart_rdn = 1;
 		write_to_data_bus = 0;
 		currently_reading_uart = 0;
+		ram2_data = 0;
 	end
 	
 	always @(posedge memi_uart_data_ready or negedge memi_rst or posedge memo_uart_rdn) begin
@@ -119,48 +137,44 @@ module mem(
 	assign uart_writeable = uart_write_clk && ~uart_write_state;
 	
 	always @* begin
+		ram1_oe = 1;
+		ram1_we = 1;
+		ram2_we = 1;
+		ram2_oe = 1;
+		ram2_pause_request = 0;
+		uart_rdn = 1;
+		uart_wrn = 1;
+		write_to_data_bus = 0;
+		write_to_ram2 = 0;
 		if (memi_rwe == `RWE_READ_MEM || memi_rwe == `RWE_WRITE_MEM) begin
 			addr = memi_data;
 			if (memi_rwe == `RWE_READ_MEM) begin
 				write_to_data_bus = 0;
-				uart_wrn = 1;
-				ram1_we = 1;
 				if (addr == `ADDR_SERIAL_PORT) begin
 					//if (data_ready) begin
 						uart_rdn = 0;
 						result = {8'h0, memio_ram1_data[7:0]};
 						currently_reading_uart = 1;
 //					end else begin
-//						uart_rdn = 1;
 //						result = 0;
 //						currently_reading_uart = 0;
 //					end
-					ram1_oe = 1;
 				end else if (addr == `ADDR_SERIAL_PORT_STATE) begin
-					uart_rdn = 1;
-					ram1_oe = 1;
-//					if (memi_uart_data_ready) begin
-//						if (uart_writeable) 
-//							result = 16'h3;
-//						else
-//							result = 16'h2;
-//					end else begin
-//						if (uart_writeable) 
-//							result = 16'h1;
-//						else
-//							result = 16'h0;
-//					end
 					result = {14'h0, memi_uart_data_ready, uart_writeable};
 					//result = memi_uart_data_ready ? 16'h3 : 16'h1; //{14'h1f, memi_uart_data_ready, 1};
 					currently_reading_uart = 0;
 				end else if (addr == `ADDR_KEYBOARD) begin
 					// read keyboard;
-					uart_rdn = 1;
-					ram1_oe = 1;
 					result = memi_ps2_scan_code;
 					currently_reading_uart = 0;
-				end else begin	
-					uart_rdn = 1;
+				end else if (addr[15] == 0) begin
+					// addr < `ADDR_RAM1_START, read ram2
+					ram2_addr = memi_data;
+					ram2_oe = 0;
+					result = memio_ram2_data;
+					currently_reading_uart = 0;
+					ram2_pause_request = 1;
+				end else begin
 					ram1_oe = 0;
 					result = memio_ram1_data;
 					currently_reading_uart = 0;
@@ -170,25 +184,23 @@ module mem(
 				currently_reading_uart = 0;
 				data = memi_write_to_mem_data;
 				result = 0;
-				ram1_oe = 1;
-				uart_rdn = 1;
 				if (addr == `ADDR_SERIAL_PORT) begin
 					// write uart
 					uart_wrn = 0;
-					ram1_we = 1;
-				end else begin
+				end else if (addr[15] == 0) begin
+					ram2_we = 0;
+					write_to_ram2 = 1;
+					ram2_pause_request = 1;
+					ram2_data = memi_write_to_mem_data;
+					ram2_addr = memi_data;
+				end 
+				else begin
 					// write memory
-					uart_wrn = 1;
 					ram1_we = 0;
 				end
 			end
 		end else begin // WRITE_REG or DO NOTHING
-			write_to_data_bus = 0;
-			uart_wrn = 1;
-			uart_rdn = 1;
 			addr = 0;
-			ram1_oe = 1;
-			ram1_we = 1;
 			// We don't read/write memory, so pass the input data to result.
 			result = memi_data;
 			currently_reading_uart = 0;
@@ -206,6 +218,12 @@ module mem(
 	assign memo_ram1_we = ram1_we;
 	assign memo_ram1_addr = addr;
 	assign memio_ram1_data = write_to_data_bus ? data : 16'bZZZZZZZZZZZZZZZZ;
+	
+	assign memo_ram2_we = ram2_we;
+	assign memo_ram2_oe = ram2_oe;
+	assign memo_ram2_addr = ram2_addr;
+	assign memio_ram2_data = write_to_ram2 ? ram2_data : 16'bZZZZZZZZZZZZZZZZ;
+	assign memo_ram2_pause_request = ram2_pause_request;
 	
 	assign memo_uart_wrn = uart_wrn;
 	assign memo_uart_rdn = uart_rdn;

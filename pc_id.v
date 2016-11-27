@@ -24,6 +24,7 @@ module pc_id(
 	 input pii_clk,
 	 input pii_rst,
 	 input pii_en,
+	 input pii_keep,
 	 output [15:0] pio_addr,
 	 output [15:0] pio_instr
     );
@@ -33,13 +34,19 @@ module pc_id(
 		if (pii_rst == 0) begin
 			addr = 16'h0;
 			instr = 16'h0;
-		end else if (pii_en == 1) begin 
-			addr = pii_addr;
-			instr = pii_instr;
+		end else begin
+			if (!pii_en) begin
+				addr = 16'h0;
+				instr = 16'h0;
+			end else if (pii_keep) begin
+				// keep
+			end else begin
+				addr = pii_addr;
+				instr = pii_instr;
+			end
 		end
 	end
 	
 	assign pio_addr = addr;
 	assign pio_instr = instr;
-
 endmodule

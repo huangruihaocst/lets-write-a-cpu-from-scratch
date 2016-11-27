@@ -40,7 +40,7 @@ module cpu(
 	 output ram2_we,
 	 output ram2_oe,
 	 output [15:0] ram2_addr_bus,
-	 input [15:0] ram2_data_bus,
+	 inout [15:0] ram2_data_bus,
 	 
 	 input uart_tbre,
 	 input uart_tsre,
@@ -65,7 +65,7 @@ module cpu(
 			slow_clk = 0;
 		end else begin
 			counter = counter + 1;
-			if (counter == {8'h0, cpu_sw[15:14], 10'h0, cpu_sw[13:12], 6'h0, cpu_sw[11:8]}) begin
+			if (counter == {9'h0, cpu_sw[15:13], 9'h0, cpu_sw[12:11], 6'h0, cpu_sw[10:8]}) begin
 				counter = 0;
 				slow_clk = !slow_clk;
 			end
@@ -75,6 +75,7 @@ module cpu(
 	assign my_clk = cpu_sw[7] ? cpu_clk : slow_clk;
 	
 	wire pci_en;
+	wire pci_keep;
 	wire [15:0] pci_new_addr;
 	wire ido_branch;
 	wire [15:0] pii_addr;
@@ -93,6 +94,7 @@ module cpu(
 		.pci_interrupt(scho_interrupt_set_pc),
 		.pci_epc(scho_epc),
 		.pci_en(pci_en),
+		.pci_keep(pci_keep),
 		.pco_instr(pii_instr),
 		.pco_addr(pii_addr),
 		.pci_ram2_data(pci_ram2_data),
@@ -100,6 +102,7 @@ module cpu(
 	);
 	
 	wire pii_en;
+	wire pii_keep;
 	wire [15:0] pio_addr;
 	wire [15:0] pio_instr;
 	pc_id cpu_pc_id (
@@ -108,6 +111,7 @@ module cpu(
 		.pii_clk(my_clk),
 		.pii_rst(cpu_rst),
 		.pii_en(pii_en),
+		.pii_keep(pii_keep),
 		.pio_addr(pio_addr),
 		.pio_instr(pio_instr)
 	);
@@ -210,6 +214,7 @@ module cpu(
 	);
 	
 	wire iei_en;
+	wire iei_keep;
 	wire [15:0] ieo_instr;
 	wire [15:0] ieo_pc;
 	wire [7:0] ieo_alu_opcode;
@@ -223,6 +228,7 @@ module cpu(
 		.iei_clk(my_clk),
 		.iei_rst(cpu_rst),
 		.iei_en(iei_en),
+		.iei_keep(iei_keep),
 	
 		.iei_instr(iei_instr),
 		.iei_pc(iei_pc),
@@ -280,6 +286,7 @@ module cpu(
 		.emi_clk(my_clk),
 		.emi_rst(cpu_rst),
 		.emi_en(emi_en),
+		.emi_keep(emi_keep),
 	 
 		.emi_instr(emi_instr),
 		.emi_pc(emi_pc),
@@ -302,6 +309,13 @@ module cpu(
 	wire [7:0] memi_buffered_ps2_scan_code;
 	wire memo_data_ready;
 	wire memo_currently_reading_uart;
+	
+	wire schi_access_ram2_pause_request;
+	wire memo_ram2_we;
+	wire memo_ram2_oe;
+	wire [15:0] memo_ram2_addr;
+	wire [15:0] memio_ram2_data;
+	//wire [15:0] memo_ram2_data;
 	mem cpu_mem(
 		.memi_rst(cpu_rst),
 		.memi_clk(cpu_clk50),
@@ -323,6 +337,12 @@ module cpu(
 		.memo_ram1_oe(ram1_oe),
 		.memo_ram1_addr(ram1_addr_bus),
 		.memio_ram1_data(ram1_data_bus),
+
+		.memo_ram2_pause_request(schi_access_ram2_pause_request),
+		.memo_ram2_we(memo_ram2_we),
+		.memo_ram2_oe(memo_ram2_oe),
+		.memo_ram2_addr(memo_ram2_addr),
+		.memio_ram2_data(ram2_data_bus),
 		
 		.memi_uart_data_ready(uart_data_ready),
 		.memo_uart_wrn(uart_wrn),
@@ -345,6 +365,7 @@ module cpu(
 		.mwi_clk(my_clk),
 		.mwi_rst(cpu_rst),
 		.mwi_en(mwi_en),
+		.mwi_keep(mwi_keep),
 		.mwi_instr(mwi_instr),
 		.mwi_pc(mwi_pc),
 		.mwi_result(mwi_result),
@@ -389,7 +410,8 @@ module cpu(
 	scheduler cpu_sched(
 		.schi_clk(my_clk),
 		.schi_rst(cpu_rst),
-		.schi_pause_request(schi_pause_request),		
+		.schi_pause_request(schi_pause_request),
+		.schi_access_ram2_pause_request(schi_access_ram2_pause_request),
 		.schi_int_enable(schi_int_enable),
 		.schi_int_disable(schi_int_disable),
 		.scho_int_en(scho_int_en),
@@ -422,6 +444,12 @@ module cpu(
 		.scho_mw_en(mwi_en),
 		.scho_reg_en(regi_en),
 		
+		.scho_pc_keep(pci_keep),
+		.scho_pi_keep(pii_keep),
+		.scho_ie_keep(iei_keep),
+		.scho_em_keep(emi_keep),
+		.scho_mw_keep(mwi_keep),
+		
 		.scho_read_from_last2(scho_read_from_last2)
 	);
 
@@ -434,6 +462,8 @@ module cpu(
 		.data_ready(ps2_data_ready),
 		.scancode(ps2_scan_code)
 	);
+	
+
 
 	reg [7:0] cnt;
 	reg [7:0] cnt_data;
@@ -446,22 +476,27 @@ module cpu(
 			cnt_data = ram1_data_bus[7:0];
 		end
 	end
-	assign cpu_led[15] = uart_data_ready;
-	assign cpu_led[14] = uart_rdn;
-	assign cpu_led[13] = memo_data_ready;
-	assign cpu_led[12] = uart_writeable;
-	//assign cpu_led[11:10] = emo_rwe;
-	//assign cpu_led[9:8] = 0;
-	assign cpu_led[7:0] = emo_data;
-	assign cpu_led[11:8] = cnt;
+	
+	wire mem_is_using_ram2;
+	
+	assign cpu_led[15] = mem_is_using_ram2;
+	assign cpu_led[14] = ram2_oe;
+	assign cpu_led[13] = ram2_we;
+	assign cpu_led[12] = uart_wrn;
+	assign cpu_led[11:8] = ram2_addr_bus;
+	//assign cpu_led[7:0] = ram2_data_bus;
+
 	//assign cpu_led[7:0] = cnt_data;
-	//assign cpu_led[8:0] = rego_debug_data;
+	assign cpu_led[7:0] = cpu_btn[0] ? rego_debug_data[7:0] : rego_debug_data[15:8];
 	assign cpu_digit_data = pii_addr[7:0]; 
 	assign regi_debug_addr = cpu_sw[3:0];
-	
+
 	assign ram2_en = 0;
-	assign ram2_we = 1;
-	assign ram2_oe = pco_ram2_oe;
-	assign ram2_addr_bus = pii_addr;
+	assign ram2_we = memo_ram2_we;
+	
+	assign mem_is_using_ram2 = memo_ram2_we == 0 || memo_ram2_oe == 0;
+	assign ram2_oe = mem_is_using_ram2 ? memo_ram2_oe : pco_ram2_oe;
+	assign ram2_addr_bus = mem_is_using_ram2 ? memo_ram2_addr : pii_addr;
+
 	assign pci_ram2_data = ram2_data_bus;
 endmodule

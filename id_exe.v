@@ -23,6 +23,7 @@ module id_exe(
 	input iei_clk,
 	input iei_rst,
 	input iei_en,
+	input iei_keep,
 	
 	input [15:0] iei_instr,
 	input [15:0] iei_pc,
@@ -78,26 +79,30 @@ module id_exe(
 			rwe = `RWE_IDLE;
 			write_to_mem_data = 16'h0;
 			branch = 0;
-		end else if (iei_en) begin
-			instr = iei_instr;
-			pc = iei_pc;
-			opcode = iei_alu_opcode;
-			op1 = iei_op1;
-			op2 = iei_op2;
-			wreg_addr = iei_wreg_addr;
-			rwe = iei_rwe;
-			write_to_mem_data = iei_write_to_mem_data;
-			branch = iei_branch;
 		end else begin
-			instr = 0;
-			pc = 0;
-			opcode = 0;
-			op1 = 0;
-			op2 = 0;
-			wreg_addr = `REG_INVALID;
-			rwe = `RWE_IDLE;
-			write_to_mem_data = 16'h0;
-			branch = 0;
+			if (!iei_en) begin
+				instr = 0;
+				pc = 0;
+				opcode = 0;
+				op1 = 0;
+				op2 = 0;
+				wreg_addr = `REG_INVALID;
+				rwe = `RWE_IDLE;
+				write_to_mem_data = 16'h0;
+				branch = 0;
+			end else if (iei_keep) begin
+				// keep
+			end else begin
+				instr = iei_instr;
+				pc = iei_pc;
+				opcode = iei_alu_opcode;
+				op1 = iei_op1;
+				op2 = iei_op2;
+				wreg_addr = iei_wreg_addr;
+				rwe = iei_rwe;
+				write_to_mem_data = iei_write_to_mem_data;
+				branch = iei_branch;
+			end
 		end
 	end
 	

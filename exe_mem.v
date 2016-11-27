@@ -23,6 +23,7 @@ module exe_mem(
 	 input emi_clk,
 	 input emi_rst,
 	 input emi_en,
+	 input emi_keep,
 	 
 	 input [15:0] emi_instr,
 	 input [15:0] emi_pc,
@@ -63,13 +64,24 @@ module exe_mem(
 			wreg_addr = `REG_INVALID;
 			rwe = 0;
 			write_to_mem_data = 16'h0;
-		end else if (emi_en) begin
-			instr = emi_instr;
-			pc = emi_pc;
-			data = emi_data;
-			wreg_addr = emi_wreg_addr;
-			rwe = emi_rwe;
-			write_to_mem_data = emi_write_to_mem_data;
+		end else begin
+			if (!emi_en) begin
+				instr = 0;
+				pc = 0;
+				data = 0;
+				wreg_addr = `REG_INVALID;
+				rwe = 0;
+				write_to_mem_data = 16'h0;
+			end else if (emi_keep) begin
+				// keep
+			end else begin
+				instr = emi_instr;
+				pc = emi_pc;
+				data = emi_data;
+				wreg_addr = emi_wreg_addr;
+				rwe = emi_rwe;
+				write_to_mem_data = emi_write_to_mem_data;
+			end
 		end
 	end
 	assign emo_instr = instr;

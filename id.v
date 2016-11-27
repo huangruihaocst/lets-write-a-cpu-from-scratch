@@ -126,12 +126,16 @@ module id(
 		try_r2 = `REG_INVALID;
 		interrupt_enable = 0;
 		interrupt_edge_signal = 1;
+		sched_type = `SCHED_CONTINUE;
+		pause_request = 0;
 	end
 	
 	// solve register data conflict
 	always @* begin
 		r1_data = idi_reg1_data;
 		r2_data = idi_reg2_data;
+		sched_type = `SCHED_CONTINUE;
+		pause_request = 0;
 		
 		if (idi_last3_wrn == 1) begin
 			if (idi_last3_reg == try_r1) begin
@@ -151,6 +155,17 @@ module id(
 		end 
 		if (idi_last_rwe == `RWE_READ_MEM) begin
 			// this is a big conflict
+			if ((idi_last_reg == try_r1 && try_r1 != `REG_INVALID) || 
+					(idi_last_reg == try_r2 && try_r2 != `REG_INVALID)) begin
+				pause_request = 1;
+				sched_type = `SCHED_PAUSE_FOR_LW;
+				if (idi_last_reg == try_r1) begin
+					r1_data = idi_last2_result;
+				end
+				if (idi_last_reg == try_r2) begin
+					r2_data = idi_last2_result;
+				end
+			end
 		end else if (idi_last_rwe == `RWE_WRITE_REG) begin
 			// following are minor conflicts
 			if (idi_last_reg == try_r1) begin
@@ -172,9 +187,8 @@ module id(
 		op2 = 0;
 		alu_opcode = `ALU_OPCODE_NOP;
 		rwe = `RWE_IDLE;
-		sched_type = `SCHED_CONTINUE;
 		sched_count = 0;
-		pause_request = 0;
+
 		int_happened = 0;
 		int_id = 0;
 		interrupt_edge_signal = 0;
