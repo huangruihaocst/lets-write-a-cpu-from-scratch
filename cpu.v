@@ -315,7 +315,11 @@ module cpu(
 	wire memo_ram2_oe;
 	wire [15:0] memo_ram2_addr;
 	wire [15:0] memio_ram2_data;
-	//wire [15:0] memo_ram2_data;
+	wire [15:0] memo_user_clk_cycles;
+
+	wire ps2_data_ready;
+	wire [7:0] ps2_scan_code;
+	wire ps2_rdn;
 	mem cpu_mem(
 		.memi_rst(cpu_rst),
 		.memi_clk(cpu_clk50),
@@ -348,11 +352,14 @@ module cpu(
 		.memo_uart_wrn(uart_wrn),
 		.memo_uart_rdn(uart_rdn),
 	
-		.memi_ps2_scan_code(memi_buffered_ps2_scan_code),
+		.memi_ps2_scan_code(ps2_scan_code),
+		.memi_ps2_data_ready(ps2_data_ready),
+		.memo_ps2_rdn(ps2_rdn),
 		
 		.memo_data_ready(memo_data_ready),
 		.memo_currently_reading_uart(memo_currently_reading_uart),
-		.uart_writeable(uart_writeable)
+		.uart_writeable(uart_writeable),
+		.memo_user_clk_cycles(memo_user_clk_cycles)
 	);
 	
 	wire mwi_en;
@@ -400,10 +407,7 @@ module cpu(
 	wire schi_hard_int;
 	wire [15:0] scho_epc_in;
 	wire [3:0] scho_test_int_id;
-	
-	wire ps2_data_ready;
-	wire [7:0] ps2_scan_code;
-	wire ps2_rdn;
+
 	
 	wire scho_handling_interrupt;
 	assign schi_hard_int = ~cpu_btn[0];
@@ -432,10 +436,10 @@ module cpu(
 		.schi_is_branch_instr(ido_branch),
 		.scho_handling_interrupt(scho_handling_interrupt),
 		
-		.schi_ps2_data_ready(ps2_data_ready),
-		.schi_ps2_scan_code(ps2_scan_code),
-		.scho_ps2_rdn(ps2_rdn),
-		.scho_ps2_scan_code(memi_buffered_ps2_scan_code),
+		//.schi_ps2_data_ready(ps2_data_ready),
+		//.schi_ps2_scan_code(ps2_scan_code),
+		//.scho_ps2_rdn(ps2_rdn),
+		//.scho_ps2_scan_code(memi_buffered_ps2_scan_code),
 		
 		.scho_pc_en(pci_en),
 		.scho_pi_en(pii_en),
@@ -479,11 +483,11 @@ module cpu(
 	
 	wire mem_is_using_ram2;
 	
-	assign cpu_led[15] = mem_is_using_ram2;
-	assign cpu_led[14] = ram2_oe;
-	assign cpu_led[13] = ram2_we;
-	assign cpu_led[12] = uart_wrn;
-	assign cpu_led[11:8] = ram2_addr_bus;
+	assign cpu_led[15] = ps2_data_ready;
+	assign cpu_led[14] = ps2_rdn;
+	assign cpu_led[13:8] = ps2_scan_code;
+	//assign cpu_led[12] = uart_wrn;
+	//assign cpu_led[11:8] = ram2_addr_bus;
 	//assign cpu_led[7:0] = ram2_data_bus;
 
 	//assign cpu_led[7:0] = cnt_data;

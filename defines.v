@@ -52,6 +52,8 @@
 `define ADDR_SERIAL_PORT			16'hbf00
 `define ADDR_SERIAL_PORT_STATE	16'hbf01
 `define ADDR_KEYBOARD				16'hbf05
+`define ADDR_KEYBOARD_STATE		16'hbf06
+`define ADDR_USER_CLK				16'hbf07
 `define ADDR_RAM1_START				16'h8000
 
 `define ECAUSE_NO_EXCEPTION		16'h00
@@ -65,4 +67,5 @@
 `define SCHED_PAUSE_FOR_LW		1
 
 `define CLK_50M_TO_480HZ			32'hcb72
+`define CLK_USER_100HZ				32'h3d090
 `endif

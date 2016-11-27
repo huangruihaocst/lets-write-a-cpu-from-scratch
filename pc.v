@@ -45,6 +45,9 @@ module pc(
 		end else begin
 			if (!pci_en) begin
 				reg_oe = 1;
+				if (pci_branch == 1) begin
+					reg_pc = pci_new_addr - 1;
+				end 
 			end else if (pci_keep) begin
 				reg_oe = 1;
 				// keep

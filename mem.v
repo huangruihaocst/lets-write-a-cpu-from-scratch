@@ -53,9 +53,11 @@ module mem(
 	 
 	 input [7:0] memi_ps2_scan_code,
 	 input memi_ps2_data_ready,
+	 output memo_ps2_rdn,
 	 output memo_data_ready,
 	 output memo_currently_reading_uart,
-	 output uart_writeable
+	 output uart_writeable,
+	 output [15:0] memo_user_clk_cycles
     );
 	 
 	reg [15:0] result;
@@ -76,6 +78,8 @@ module mem(
 	reg [15:0] ram2_data;
 	reg ram2_pause_request;
 	reg write_to_ram2;
+	
+	reg ps2_rdn;
 	
 	initial begin
 		ram1_en = 0;
@@ -105,6 +109,26 @@ module mem(
 				end
 			end else begin
 				data_ready = 0;
+			end
+		end
+	end
+	
+	reg [31:0] user_clk_cnt;
+	reg [15:0] user_clk_cycles;
+	reg user_clk;
+	always @(negedge memi_rst or posedge memi_clk) begin
+		if (memi_rst == 0) begin
+			user_clk_cnt = 0;
+			user_clk_cycles = 0;
+		end else begin
+			if (user_clk_cnt == `CLK_USER_100HZ) begin
+				user_clk = ~user_clk;
+				if (user_clk) begin
+					user_clk_cycles = user_clk_cycles + 1;
+				end
+				user_clk_cnt = 0;
+			end else begin
+				user_clk_cnt = user_clk_cnt + 1;
 			end
 		end
 	end
@@ -146,6 +170,7 @@ module mem(
 		uart_wrn = 1;
 		write_to_data_bus = 0;
 		write_to_ram2 = 0;
+		ps2_rdn = 1;
 		if (memi_rwe == `RWE_READ_MEM || memi_rwe == `RWE_WRITE_MEM) begin
 			addr = memi_data;
 			if (memi_rwe == `RWE_READ_MEM) begin
@@ -161,11 +186,17 @@ module mem(
 //					end
 				end else if (addr == `ADDR_SERIAL_PORT_STATE) begin
 					result = {14'h0, memi_uart_data_ready, uart_writeable};
-					//result = memi_uart_data_ready ? 16'h3 : 16'h1; //{14'h1f, memi_uart_data_ready, 1};
 					currently_reading_uart = 0;
 				end else if (addr == `ADDR_KEYBOARD) begin
 					// read keyboard;
+					ps2_rdn = 0;
 					result = memi_ps2_scan_code;
+					currently_reading_uart = 0;
+				end else if (addr == `ADDR_KEYBOARD_STATE) begin
+					result = memi_ps2_data_ready;
+					currently_reading_uart = 0;
+				end else if (addr == `ADDR_USER_CLK) begin
+					result = user_clk_cycles;
 					currently_reading_uart = 0;
 				end else if (addr[15] == 0) begin
 					// addr < `ADDR_RAM1_START, read ram2
@@ -225,9 +256,12 @@ module mem(
 	assign memio_ram2_data = write_to_ram2 ? ram2_data : 16'bZZZZZZZZZZZZZZZZ;
 	assign memo_ram2_pause_request = ram2_pause_request;
 	
+	assign memo_ps2_rdn = ps2_rdn;
+	
 	assign memo_uart_wrn = uart_wrn;
 	assign memo_uart_rdn = uart_rdn;
 	
 	assign memo_data_ready = data_ready;
 	assign memo_currently_reading_uart = currently_reading_uart;
+	assign memo_user_clk_cycles = user_clk_cycles;
 endmodule
