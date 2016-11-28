@@ -272,6 +272,13 @@ module id(
 					wreg_addr = rx;
 					alu_opcode = `ALU_OPCODE_SHIFT_RIGHT_ARITH;
 					rwe = `RWE_WRITE_REG;
+				end else if (idi_instr[1:0] == `INSTR_OPCODE_LOW2_SRL) begin
+					try_r1 = ry;
+					op1 = r1_data;
+					op2 = (idi_instr[4:2] == 3'b000) ? 16'h8 : idi_instr[4:2];
+					wreg_addr = rx;
+					alu_opcode = `ALU_OPCODE_SHIFT_RIGHT_LOGIC;
+					rwe = `RWE_WRITE_REG;
 				end
 			end
 			`INSTR_OPCODE5_CMP: begin

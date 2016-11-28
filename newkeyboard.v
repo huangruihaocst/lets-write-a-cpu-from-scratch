@@ -1,3 +1,4 @@
+`include "defines.v"
 module keyboard (
 input datain, clkin,
 input fclk, rst,
@@ -452,19 +453,19 @@ always @(posedge fclk or negedge rst) begin
                                 kstate <= K_STOP;
                             8'h75: // UP
                                 begin
-                                    ascii <= 16'hA0;
+                                    ascii <= `KEYBOARD_UP;
                                 end
                             8'h72: // DOWN
                                 begin
-                                    ascii <= 16'hA1;
+                                    ascii <= `KEYBOARD_DOWN;
                                 end
                             8'h6B: // LEFT
                                 begin
-                                    ascii <= 16'hA2;
+                                    ascii <= `KEYBOARD_LEFT;
                                 end
                             8'h74: // RIGHT
                                 begin
-                                    ascii <= 16'hA3;
+                                    ascii <= `KEYBOARD_RIGHT;
                                 end
                             default:
                                 begin

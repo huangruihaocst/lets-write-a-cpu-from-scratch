@@ -320,6 +320,7 @@ module cpu(
 	wire ps2_data_ready;
 	wire [7:0] ps2_scan_code;
 	wire ps2_rdn;
+	wire [15:0] ps2_ascii;
 	mem cpu_mem(
 		.memi_rst(cpu_rst),
 		.memi_clk(cpu_clk50),
@@ -353,6 +354,7 @@ module cpu(
 		.memo_uart_rdn(uart_rdn),
 	
 		.memi_ps2_scan_code(ps2_scan_code),
+		.memi_ps2_ascii(ps2_ascii),
 		.memi_ps2_data_ready(ps2_data_ready),
 		.memo_ps2_rdn(ps2_rdn),
 		
@@ -464,7 +466,8 @@ module cpu(
 		.rst(cpu_rst),
 		.rdn(ps2_rdn),
 		.data_ready(ps2_data_ready),
-		.scancode(ps2_scan_code)
+		.scancode(ps2_scan_code),
+		.outascii(ps2_ascii)
 	);
 	
 

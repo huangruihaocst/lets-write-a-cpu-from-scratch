@@ -52,6 +52,7 @@ module mem(
 	 input memi_uart_data_ready,
 	 
 	 input [7:0] memi_ps2_scan_code,
+	 input [15:0] memi_ps2_ascii,
 	 input memi_ps2_data_ready,
 	 output memo_ps2_rdn,
 	 output memo_data_ready,
@@ -190,7 +191,7 @@ module mem(
 				end else if (addr == `ADDR_KEYBOARD) begin
 					// read keyboard;
 					ps2_rdn = 0;
-					result = memi_ps2_scan_code;
+					result = memi_ps2_ascii;
 					currently_reading_uart = 0;
 				end else if (addr == `ADDR_KEYBOARD_STATE) begin
 					result = memi_ps2_data_ready;

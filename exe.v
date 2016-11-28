@@ -72,6 +72,9 @@ module exe(
 				intermediate = {{16{exei_op1[15]}}, exei_op1};
 				result = intermediate >> exei_op2[3:0];
 			end
+			`ALU_OPCODE_SHIFT_RIGHT_LOGIC: begin
+				result = exei_op1 >> exei_op2[3:0];
+			end
 			default: begin
 				result = 16'hfe;
 			end
