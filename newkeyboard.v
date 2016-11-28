@@ -32,6 +32,7 @@ localparam  DELAY   = 5'b00000,
             PARITY  = 5'b01010,
             STOP    = 5'b01011,
             FINISH  = 5'b01100,
+            DROP    = 5'b01101,
             K_BEGIN = 3'b000,
             K_HOLD  = 3'b001,
             K_STOP  = 3'b010;
@@ -137,8 +138,13 @@ always @(posedge fclk or negedge rst) begin
             STOP:
                 if (clk) begin
                     if (data) begin
-                        state    <= FINISH;
                         outascii <= ascii;
+                        //for dataready (each key down only one dataready)
+                        if (code == 8'hF0 || code == 8'hE0 || kstate == K_STOP) begin
+                            state <= DROP;
+                        end else begin
+                            state <= FINISH;
+                        end
                         case (kstate)
                         K_BEGIN:
                             case (code)
@@ -488,6 +494,11 @@ always @(posedge fclk or negedge rst) begin
                     state <= DELAY;
                     scancode <= code;
                     dataready <= 1;
+                end
+            DROP:
+                begin
+                    state <- DELAY;
+                    scancode <= code;
                 end
             endcase
     end
