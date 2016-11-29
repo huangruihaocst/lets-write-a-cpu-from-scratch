@@ -138,7 +138,6 @@ always @(posedge fclk or negedge rst) begin
             STOP:
                 if (clk) begin
                     if (data) begin
-                        outascii <= ascii;
                         //for dataready (each key down only one dataready)
                         if (code == 8'hF0 || code == 8'hE0 || kstate == K_STOP) begin
                             state <= DROP;
@@ -493,11 +492,12 @@ always @(posedge fclk or negedge rst) begin
                 begin
                     state <= DELAY;
                     scancode <= code;
+						  outascii <= ascii;
                     dataready <= 1;
                 end
             DROP:
                 begin
-                    state <- DELAY;
+                    state <= DELAY;
                     scancode <= code;
                 end
             endcase
