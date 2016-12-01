@@ -62,6 +62,12 @@
 `define ADDR_KEYBOARD				16'hbf05
 `define ADDR_KEYBOARD_STATE		16'hbf06
 `define ADDR_USER_CLK				16'hbf07
+`define ADDR_PLATE1_X				16'hbf08
+`define ADDR_PLATE1_Y				16'h7991
+`define ADDR_PLATE2_X				16'h7992
+`define ADDR_PLATE2_Y				16'h7993
+`define ADDR_BALL_X					16'hbf09
+`define ADDR_BALL_Y					16'h7995
 `define ADDR_RAM1_START				16'h8000
 
 `define ECAUSE_NO_EXCEPTION		16'h00
@@ -81,4 +87,9 @@
 `define KEYBOARD_DOWN				16'ha1
 `define KEYBOARD_LEFT				16'ha2
 `define KEYBOARD_RIGHT				16'ha3
+
+`define SPRITE_ID_PLATE1			0
+`define SPRITE_ID_PLATE2			1
+`define SPRITE_ID_BALL				2
+
 `endif

@@ -19,24 +19,19 @@
 //
 //////////////////////////////////////////////////////////////////////////////////
 module GraphicCard(
-	 input datain, 
-	 input clkin,
-	 input fclk, 
-	 input rst,
-	 input wrn,
-    output [6:0] dig0,
-	 output [6:0] dig1,
+	 input ppu_fclk, 
+	 input ppu_rst,
 	 
-	 input [3:0] sprite_x,
-	 input [3:0] sprite_y,
-	 input [8:0] sprite_id,
+	 input ppu_wrn,
+	 input [9:0] ppu_sprite_x,
+	 input [8:0] ppu_sprite_y,
+	 input [8:0] ppu_sprite_id,
 	 
-	 output hs,
-	 output vs,
-	 output [2:0] red,
-	 output [2:0] green,
-	 output [2:0] blue,
-	 output [8:0] leds
+	 output ppu_hs,
+	 output ppu_vs,
+	 output [2:0] ppu_red,
+	 output [2:0] ppu_green,
+	 output [2:0] ppu_blue
 );
 
 wire [7:0] kb_code;
@@ -45,28 +40,17 @@ wire [2:0] g;
 wire [2:0] b;
 wire [18:0] addr;
 
-testKeyboard kb (
-	.datain(datain), 
-	.clkin(clkin),
-	.fclk(fclk),
-	.rst(rst),
-	.keycode(kb_code),
-	.dig0(dig0),
-	.dig1(dig1)
-);
-
 GraphRam gr (
-	.kb_code(kb_code),
 	.ored(r), .ogreen(g), .oblue(b),
-	.addr(addr), .sprite_x(sprite_x), .sprite_y(sprite_y),
-	.sprite_id(sprite_id), .wrn(wrn)
+	.addr(addr), .sprite_x(ppu_sprite_x), .sprite_y(ppu_sprite_y),
+	.sprite_id(ppu_sprite_id), .wrn(ppu_wrn)
 );
 
 VGA_Controller vga (
-	.hs(hs), .vs(vs),
-	.ored(red), .ogreen(green), .oblue(blue),
+	.hs(ppu_hs), .vs(ppu_vs),
+	.ored(ppu_red), .ogreen(ppu_green), .oblue(ppu_blue),
 	.R(r), .G(g), .B(b),
-	.reset(rst), .CLK_in(fclk), .leds(leds),
+	.reset(ppu_rst), .CLK_in(ppu_fclk),
 	.addr(addr)
 );
 

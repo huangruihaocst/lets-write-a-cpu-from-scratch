@@ -58,7 +58,12 @@ module mem(
 	 output memo_data_ready,
 	 output memo_currently_reading_uart,
 	 output uart_writeable,
-	 output [15:0] memo_user_clk_cycles
+	 output [15:0] memo_user_clk_cycles,
+	 
+	 output memo_ppu_wrn,
+	 output [9:0] memo_ppu_sprite_x,
+	 output [8:0] memo_ppu_sprite_y,
+	 output [7:0] memo_ppu_sprite_id
     );
 	 
 	reg [15:0] result;
@@ -161,6 +166,16 @@ module mem(
 	end
 	assign uart_writeable = uart_write_clk && ~uart_write_state;
 	
+	reg ppu_wrn;
+	reg [9:0] ppu_sprite_x;
+	reg [8:0] ppu_sprite_y;
+	reg [7:0] ppu_sprite_id;
+	
+	assign memo_ppu_wrn = ppu_wrn;
+	assign memo_ppu_sprite_x = ppu_sprite_x;
+	assign memo_ppu_sprite_y = ppu_sprite_y;
+	assign memo_ppu_sprite_id = ppu_sprite_id;
+	
 	always @* begin
 		ram1_oe = 1;
 		ram1_we = 1;
@@ -172,6 +187,7 @@ module mem(
 		write_to_data_bus = 0;
 		write_to_ram2 = 0;
 		ps2_rdn = 1;
+		ppu_wrn = 1;
 		if (memi_rwe == `RWE_READ_MEM || memi_rwe == `RWE_WRITE_MEM) begin
 			addr = memi_data;
 			if (memi_rwe == `RWE_READ_MEM) begin
@@ -219,6 +235,16 @@ module mem(
 				if (addr == `ADDR_SERIAL_PORT) begin
 					// write uart
 					uart_wrn = 0;
+				end else if (addr == `ADDR_PLATE1_X) begin
+					ppu_wrn = 0;
+					ppu_sprite_id = `SPRITE_ID_PLATE1;
+					ppu_sprite_x = memi_write_to_mem_data;
+					ppu_sprite_y = 9'h100;
+				end else if (addr == `ADDR_BALL_X) begin
+					ppu_wrn = 1;
+					ppu_sprite_id = `SPRITE_ID_BALL;
+					ppu_sprite_x = memi_write_to_mem_data;
+					ppu_sprite_y = 9'h80;
 				end else if (addr[15] == 0) begin
 					ram2_we = 0;
 					write_to_ram2 = 1;

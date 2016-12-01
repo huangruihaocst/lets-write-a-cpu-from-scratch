@@ -22,7 +22,6 @@
 //
 //////////////////////////////////////////////////////////////////////////////////
 module GraphRam(
-		input [7:0] kb_code,
 		input [19:0] addr,
 		input [7:0] sprite_id,
 		input [9:0] sprite_x,

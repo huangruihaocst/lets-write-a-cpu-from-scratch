@@ -154,3 +154,17 @@ NET "cpu_btn[2]" CLOCK_DEDICATED_ROUTE = FALSE;
 NET "cpu_btn[3]" CLOCK_DEDICATED_ROUTE = FALSE;
 NET "cpu_ps2_clk" LOC = U6;
 NET "cpu_ps2_data" LOC = V6;
+
+// PPU
+
+NET "ppu_vs" LOC = E6;
+NET "ppu_hs" LOC = D6;
+NET "ppu_blue[2]" LOC = B6;
+NET "ppu_blue[1]" LOC = A6;
+NET "ppu_blue[0]" LOC = D5;
+NET "ppu_red[2]" LOC = A4;
+NET "ppu_red[1]" LOC = C3;
+NET "ppu_red[0]" LOC = A7;
+NET "ppu_green[2]" LOC = C5;
+NET "ppu_green[1]" LOC = C4;
+NET "ppu_green[0]" LOC = B4;

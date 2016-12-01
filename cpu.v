@@ -51,7 +51,13 @@ module cpu(
 	 input uart_parity_error,
 	 
 	 input cpu_ps2_data,
-	 input cpu_ps2_clk
+	 input cpu_ps2_clk,
+	 
+	 output ppu_hs,
+	 output ppu_vs,
+	 output [2:0] ppu_red,
+	 output [2:0] ppu_green,
+	 output [2:0] ppu_blue
     );
 	
 	wire my_clk;
@@ -321,6 +327,12 @@ module cpu(
 	wire [7:0] ps2_scan_code;
 	wire ps2_rdn;
 	wire [15:0] ps2_ascii;
+	
+	wire ppu_wrn;
+	wire [9:0] ppu_sprite_x;
+	wire [8:0] ppu_sprite_y;
+	wire [7:0] ppu_sprite_id;
+	
 	mem cpu_mem(
 		.memi_rst(cpu_rst),
 		.memi_clk(cpu_clk50),
@@ -361,7 +373,12 @@ module cpu(
 		.memo_data_ready(memo_data_ready),
 		.memo_currently_reading_uart(memo_currently_reading_uart),
 		.uart_writeable(uart_writeable),
-		.memo_user_clk_cycles(memo_user_clk_cycles)
+		.memo_user_clk_cycles(memo_user_clk_cycles),
+		
+		.memo_ppu_wrn(ppu_wrn),
+		.memo_ppu_sprite_x(ppu_sprite_x),
+		.memo_ppu_sprite_y(ppu_sprite_y),
+		.memo_ppu_sprite_id(ppu_sprite_id)
 	);
 	
 	wire mwi_en;
@@ -470,6 +487,21 @@ module cpu(
 		.outascii(ps2_ascii)
 	);
 	
+	GraphicCard ppu(
+		.ppu_fclk(cpu_clk50), 
+		.ppu_rst(cpu_rst),
+	 
+		.ppu_wrn(ppu_wrn),
+		.ppu_sprite_x(ppu_sprite_x),
+		.ppu_sprite_y(ppu_sprite_y),
+		.ppu_sprite_id(ppu_sprite_id),
+	 
+		.ppu_hs(ppu_hs),
+		.ppu_vs(ppu_vs),
+		.ppu_red(ppu_red),
+		.ppu_green(ppu_green),
+		.ppu_blue(ppu_blue)
+	);
 
 
 	reg [7:0] cnt;

@@ -16,8 +16,7 @@ entity VGA_Controller is
 		addr	: out std_logic_vector (18 downto 0);
 	--Control Signals
 		reset	: in  std_logic;
-		CLK_in	: in  std_logic;			--50M时钟输入
-		leds : out std_logic_vector (8 downto 0)
+		CLK_in	: in  std_logic			--50M时钟输入
 	);		
 end entity VGA_Controller;
 
