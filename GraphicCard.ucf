@@ -41,3 +41,24 @@ NET "leds[3]" LOC = B11;
 NET "leds[2]" LOC = A11;
 NET "leds[1]" LOC = E10;
 NET "leds[0]" LOC = D10;
+
+NET "sprite_id[7]" LOC = J6;
+NET "sprite_id[6]" LOC = J7;
+NET "sprite_id[5]" LOC = K2;
+NET "sprite_id[4]" LOC = K7;
+NET "sprite_id[3]" LOC = M1;
+NET "sprite_id[2]" LOC = N1;
+NET "sprite_id[1]" LOC = N2;
+NET "sprite_id[0]" LOC = R1;
+
+NET "sprite_x[3]" LOC = R4;
+NET "sprite_x[2]" LOC = U1;
+NET "sprite_x[1]" LOC = V2;
+NET "sprite_x[0]" LOC = V3;
+
+NET "sprite_y[3]" LOC = V4;
+NET "sprite_y[2]" LOC = U8;
+NET "sprite_y[1]" LOC = R7;
+NET "sprite_y[0]" LOC = T7;
+
+NET "wrn" LOC = U9;

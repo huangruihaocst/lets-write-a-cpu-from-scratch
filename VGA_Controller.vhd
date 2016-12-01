@@ -13,7 +13,7 @@ entity VGA_Controller is
 		R : in  std_logic_vector (2 downto 0);
 		G : in  std_logic_vector (2 downto 0);
 		B : in  std_logic_vector (2 downto 0);
---		addr	: out std_logic_vector (18 downto 0);
+		addr	: out std_logic_vector (18 downto 0);
 	--Control Signals
 		reset	: in  std_logic;
 		CLK_in	: in  std_logic;			--50M ±÷” ‰»Î
@@ -126,9 +126,9 @@ CLK<=CLK_2;
 			rt		<=	(others => '0');
 			gt		<=	(others => '0');
 			bt		<=	(others => '0');
---			addr	<=	(others => '0');
+			addr	<=	(others => '0');
 	  	elsif CLK'event and CLK='1' then
---			addr	<=	x&y;
+			addr	<=	x&y;
 			rt		<=	R;
 			gt		<=	G;
 			bt		<=	B;

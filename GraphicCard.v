@@ -23,8 +23,13 @@ module GraphicCard(
 	 input clkin,
 	 input fclk, 
 	 input rst,
+	 input wrn,
     output [6:0] dig0,
 	 output [6:0] dig1,
+	 
+	 input [3:0] sprite_x,
+	 input [3:0] sprite_y,
+	 input [8:0] sprite_id,
 	 
 	 output hs,
 	 output vs,
@@ -38,6 +43,7 @@ wire [7:0] kb_code;
 wire [2:0] r;
 wire [2:0] g;
 wire [2:0] b;
+wire [18:0] addr;
 
 testKeyboard kb (
 	.datain(datain), 
@@ -51,14 +57,17 @@ testKeyboard kb (
 
 GraphRam gr (
 	.kb_code(kb_code),
-	.ored(r), .ogreen(g), .oblue(b)
+	.ored(r), .ogreen(g), .oblue(b),
+	.addr(addr), .sprite_x(sprite_x), .sprite_y(sprite_y),
+	.sprite_id(sprite_id), .wrn(wrn)
 );
 
 VGA_Controller vga (
 	.hs(hs), .vs(vs),
 	.ored(red), .ogreen(green), .oblue(blue),
 	.R(r), .G(g), .B(b),
-	.reset(rst), .CLK_in(fclk), .leds(leds)
+	.reset(rst), .CLK_in(fclk), .leds(leds),
+	.addr(addr)
 );
 
 endmodule
