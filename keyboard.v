@@ -55,9 +55,8 @@ always @(posedge fclk or negedge rst) begin
     else begin
 	 //when rdn is enabled (means the data is read over)
 	 //we can set the dataready back to zero
-		  if (p2 != p1) begin
-				 p2 <= p1;
-				 dataready <= 0;
+		  if (rdn && dataready == 1) begin
+				dataready <= 0;
 		  end
         case (state)
         DELAY:
