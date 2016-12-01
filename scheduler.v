@@ -116,14 +116,14 @@ module scheduler(
 	always @(negedge schi_hard_int or negedge schi_rst) begin
 		if (schi_rst == 0) begin
 			hard_int_p1 = 0;
-			//epc_buf_hard = 0;
-			//is_in_branch_delay_slot = 0;
-			//is_branch_instr = 0;
+			epc_buf_hard = 0;
+			is_in_branch_delay_slot = 0;
+			is_branch_instr = 0;
 		end else if (interrupt_en) begin
 			hard_int_p1 = ~hard_int_p1;
-			//epc_buf_hard = schi_epc;
-			//is_in_branch_delay_slot = schi_is_in_branch_delay_slot;
-			//is_branch_instr = schi_is_branch_instr;
+			epc_buf_hard = schi_epc;
+			is_in_branch_delay_slot = schi_is_in_branch_delay_slot;
+			is_branch_instr = schi_is_branch_instr;
 		end
 	end
 	
@@ -134,6 +134,7 @@ module scheduler(
 	reg branch_ps2;
 	reg [7:0] buffered_ps2_scan_code;
 	reg ps2_rdn;
+	reg set_handling_interrupt;
 
 	// keyboard int is a edge triggered signal
 	always @(posedge schi_clk or negedge schi_rst) begin
@@ -172,15 +173,21 @@ module scheduler(
 			ecause = 0;
 			ps2_int_p2 = 0;
 			handling_interrupt = 0;
+			set_handling_interrupt = 0;
 		end else begin
 			interrupt_set_pc = 0;
+			if (set_handling_interrupt) begin
+				handling_interrupt = 0;
+				set_handling_interrupt = 0;
+			end
 			if (schi_int) begin
 				// pending soft int or eret
 				interrupt_set_pc = 1;
 				if (schi_int_id == 4'b1111) begin
 					epc_out = epc_in;
 					ecause = `ECAUSE_NO_EXCEPTION;
-					handling_interrupt = 0;
+					//handling_interrupt = 0;
+					set_handling_interrupt = 1;
 				end else begin
 					epc_out = 16'h4;
 					epc_in = schi_epc + 1;
@@ -232,16 +239,6 @@ module scheduler(
 	// pause assembly line
 	always @(negedge schi_rst or posedge schi_clk) begin
 		if (schi_rst == 0) begin
-//			pc_en = 1;
-//			pi_en = 1;
-//			ie_en = 1;
-//			em_en = 1;
-//			mw_en = 1;
-//			pc_keep = 0;
-//			pi_keep = 0;
-//			ie_keep = 0;
-//			em_keep = 0;
-//			mw_keep = 0;
 			reg_en = 1;
 			rest = 0;
 			a = 0;
@@ -271,6 +268,8 @@ module scheduler(
 			ie_en = 0;
 		end else if (schi_access_ram2_pause_request) begin
 			pc_en = 0;
+		end else if (interrupt_set_pc) begin
+			pi_en = 0;
 		end
 	end
 	

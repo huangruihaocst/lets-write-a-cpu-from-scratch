@@ -350,12 +350,30 @@ module id(
 				alu_opcode = `ALU_OPCODE_ADD;
 				rwe = `RWE_READ_MEM;
 			end
+			`INSTR_OPCODE5_LW_SP: begin
+				try_r1 = `REG_SP;
+				op1 = r1_data;
+				op2 = sext_imm8;
+				wreg_addr = rx;
+				alu_opcode = `ALU_OPCODE_ADD;
+				rwe = `RWE_READ_MEM;
+			end
 			`INSTR_OPCODE5_SW: begin
 				try_r1 = rx;
 				try_r2 = ry;
 				op1 = r1_data;
 				write_to_mem_data = r2_data;
 				op2 = sext_imm5;
+				alu_opcode = `ALU_OPCODE_ADD;
+				wreg_addr = `REG_INVALID;
+				rwe = `RWE_WRITE_MEM;
+			end
+			`INSTR_OPCODE5_SW_SP: begin
+				try_r1 = `REG_SP;
+				try_r2 = rx;
+				op1 = r1_data;
+				write_to_mem_data = r2_data;
+				op2 = sext_imm8;
 				alu_opcode = `ALU_OPCODE_ADD;
 				wreg_addr = `REG_INVALID;
 				rwe = `RWE_WRITE_MEM;
@@ -378,13 +396,30 @@ module id(
 				branch = op1 == 0;
 			end
 			`INSTR_OPCODE5_BRANCH_T: begin
-				try_r1 = `REG_T;
-				op1 = r1_data;
-				new_addr = idi_addr + sext_imm8 + 1;
 				if (rx == `INSTR_OPCODE_HIGH3_BTEQZ) begin
+					try_r1 = `REG_T;
+					op1 = r1_data;
+					new_addr = idi_addr + sext_imm8 + 1;
 					branch = (op1 == 0);
 				end else if (rx == `INSTR_OPCODE_HIGH3_BTNEZ) begin
+					try_r1 = `REG_T;
+					op1 = r1_data;
+					new_addr = idi_addr + sext_imm8 + 1;
 					branch = (op1 != 0);
+				end else if (rx == `INSTR_OPCODE_HIGH3_ADDSP) begin
+					try_r1 = `REG_SP;
+					op1 = r1_data;
+					op2 = sext_imm8;
+					wreg_addr = `REG_SP;
+					alu_opcode = `ALU_OPCODE_ADD;
+					rwe = `RWE_WRITE_REG;
+				end else if (rx == `INSTR_OPCODE_HIGH3_MTSP && idi_instr[4:0] == `INSTR_OPCODE_LOW5_MTSP) begin
+					try_r1 = ry;
+					op1 = r1_data;
+					op2 = 0;
+					wreg_addr = `REG_SP;
+					alu_opcode = `ALU_OPCODE_ADD;
+					rwe = `RWE_WRITE_REG;
 				end
 			end
 			// Interruptions

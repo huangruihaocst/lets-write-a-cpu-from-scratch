@@ -412,7 +412,7 @@ module cpu(
 
 	
 	wire scho_handling_interrupt;
-	assign schi_hard_int = ~cpu_btn[0];
+	assign schi_hard_int = ~cpu_btn[1];
 	scheduler cpu_sched(
 		.schi_clk(my_clk),
 		.schi_rst(cpu_rst),
@@ -486,9 +486,11 @@ module cpu(
 	
 	wire mem_is_using_ram2;
 	
-	assign cpu_led[15] = ps2_data_ready;
-	assign cpu_led[14] = ps2_rdn;
-	assign cpu_led[13:8] = ps2_scan_code;
+	assign cpu_led[15] = scho_handling_interrupt;
+	assign cpu_led[14] = schi_hard_int;
+	assign cpu_led[13] = scho_int_en;
+	assign cpu_led[12] = scho_interrupt_set_pc;
+	assign cpu_led[11:8] = 0;
 	//assign cpu_led[12] = uart_wrn;
 	//assign cpu_led[11:8] = ram2_addr_bus;
 	//assign cpu_led[7:0] = ram2_data_bus;
