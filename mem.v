@@ -237,14 +237,12 @@ module mem(
 					uart_wrn = 0;
 				end else if (addr == `ADDR_PLATE1_X) begin
 					ppu_wrn = 0;
-					ppu_sprite_id = `SPRITE_ID_PLATE1;
+					ppu_sprite_id = `SPRITE_ID_PLATE1_X;
 					ppu_sprite_x = memi_write_to_mem_data;
-					ppu_sprite_y = 9'h100;
 				end else if (addr == `ADDR_BALL_X) begin
-					ppu_wrn = 1;
-					ppu_sprite_id = `SPRITE_ID_BALL;
+					ppu_wrn = 0;
+					ppu_sprite_id = `SPRITE_ID_BALL_X;
 					ppu_sprite_x = memi_write_to_mem_data;
-					ppu_sprite_y = 9'h80;
 				end else if (addr[15] == 0) begin
 					ram2_we = 0;
 					write_to_ram2 = 1;

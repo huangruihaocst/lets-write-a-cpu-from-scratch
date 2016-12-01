@@ -88,8 +88,9 @@
 `define KEYBOARD_LEFT				16'ha2
 `define KEYBOARD_RIGHT				16'ha3
 
-`define SPRITE_ID_PLATE1			0
-`define SPRITE_ID_PLATE2			1
-`define SPRITE_ID_BALL				2
+`define SPRITE_ID_PLATE1_X			0
+`define SPRITE_ID_PLATE2_X			2
+`define SPRITE_ID_BALL_X			4
+`define SPRITE_ID_BALL_Y			5
 
 `endif

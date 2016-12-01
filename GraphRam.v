@@ -59,20 +59,17 @@ reg [8:0] ball_y;
 always @(posedge wrn) begin
 	case (sprite_id)
 		8'h0: // plate 1
-			begin
-				plate1_x <= sprite_x;
-				plate1_y <= sprite_y;
-			end
-		8'h1: // plate 2
-			begin
-				plate2_x <= sprite_x;
-				plate2_y <= sprite_y;				
-			end
-		8'h2: // ball
-			begin
-				ball_x <= sprite_x;
-				ball_y <= sprite_y;			
-			end
+			plate1_x <= sprite_x;
+		8'h1:
+			plate1_y <= sprite_y;
+		8'h2: // plate 2
+			plate2_x <= sprite_x;
+		8'h3:
+			plate2_y <= sprite_y;				
+		8'h4: // ball
+			ball_x <= sprite_x;
+		8'h5:
+			ball_y <= sprite_y;			
 	endcase
 end
 

@@ -25,7 +25,7 @@ module GraphicCard(
 	 input ppu_wrn,
 	 input [9:0] ppu_sprite_x,
 	 input [8:0] ppu_sprite_y,
-	 input [8:0] ppu_sprite_id,
+	 input [7:0] ppu_sprite_id,
 	 
 	 output ppu_hs,
 	 output ppu_vs,
