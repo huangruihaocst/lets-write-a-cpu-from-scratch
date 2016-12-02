@@ -239,10 +239,18 @@ module mem(
 					ppu_wrn = 0;
 					ppu_sprite_id = `SPRITE_ID_PLATE1_X;
 					ppu_sprite_x = memi_write_to_mem_data;
+				end else if (addr == `ADDR_PLATE1_Y) begin
+					ppu_wrn = 0;
+					ppu_sprite_id = `SPRITE_ID_PLATE1_Y;
+					ppu_sprite_y = memi_write_to_mem_data;
 				end else if (addr == `ADDR_BALL_X) begin
 					ppu_wrn = 0;
 					ppu_sprite_id = `SPRITE_ID_BALL_X;
 					ppu_sprite_x = memi_write_to_mem_data;
+				end else if (addr == `ADDR_BALL_Y) begin
+					ppu_wrn = 0;
+					ppu_sprite_id = `SPRITE_ID_BALL_Y;
+					ppu_sprite_y = memi_write_to_mem_data;
 				end else if (addr[15] == 0) begin
 					ram2_we = 0;
 					write_to_ram2 = 1;

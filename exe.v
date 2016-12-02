@@ -62,6 +62,9 @@ module exe(
 			`ALU_OPCODE_OR: begin
 				result = exei_op1 | exei_op2;
 			end
+			`ALU_OPCODE_NOT: begin
+				result = ~exei_op1;
+			end
 			`ALU_OPCODE_CMP: begin
 				result = exei_op1 == exei_op2 ? 0 : 1;
 			end

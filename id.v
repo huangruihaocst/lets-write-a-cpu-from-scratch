@@ -295,6 +295,21 @@ module id(
 					op1 = r1_data;
 					new_addr = op1;
 					branch = 1;
+				end else if (idi_instr[7:0] == `INSTR_OPCODE_LOW8_JRRA) begin
+					try_r1 = `REG_RA;
+					op1 = r1_data;
+					new_addr = op1;
+					branch = 1;
+				end else if (idi_instr[7:0] == `INSTR_OPCODE_LOW8_JALR) begin
+					try_r1 = rx;
+					new_addr = r1_data;
+					branch = 1;
+					
+					wreg_addr = `REG_RA;
+					op1 = idi_addr;
+					op2 = 2;
+					alu_opcode = `ALU_OPCODE_ADD;
+					rwe = `RWE_WRITE_REG;
 				end else if (idi_instr[7:0] == `INSTR_OPCODE_LOW8_MFPC) begin
 					op1 = idi_addr + 1;
 					op2 = 0;
@@ -316,6 +331,13 @@ module id(
 					op2 = r2_data;
 					wreg_addr = rx;
 					alu_opcode = `ALU_OPCODE_OR;
+					rwe = `RWE_WRITE_REG;
+				end else if (idi_instr[4:0] == `INSTR_OPCODE_LOW5_NOT) begin
+					try_r1 = ry;
+					op1 = r1_data;
+					op2 = 0;
+					wreg_addr = rx;
+					alu_opcode = `ALU_OPCODE_NOT;
 					rwe = `RWE_WRITE_REG;
 				end
 			end

@@ -12,9 +12,11 @@
 `define ALU_OPCODE_AND			3
 `define ALU_OPCODE_OR			4
 `define ALU_OPCODE_CMP			5
+`define ALU_OPCODE_NOT			6
 `define ALU_OPCODE_SHIFT_LEFT	8
 `define ALU_OPCODE_SHIFT_RIGHT_ARITH 9
 `define ALU_OPCODE_SHIFT_RIGHT_LOGIC 10
+
 
 `define INSTR_OPCODE5_NOP			5'b00001
 `define INSTR_OPCODE5_B				5'b00010
@@ -48,14 +50,18 @@
 `define INSTR_OPCODE_LOW8_MFPC	8'b01000000
 `define INSTR_OPCODE_LOW5_AND		5'b01100
 `define INSTR_OPCODE_LOW5_OR		5'b01101
+`define INSTR_OPCODE_LOW5_NOT		5'b01111
 `define INSTR_OPCODE_LOW8_MFIH	8'h0
 `define INSTR_OPCODE_LOW8_MTIH	8'h1
 `define INSTR_OPCODE_HIGH3_MTSP	3'b100
 `define INSTR_OPCODE_LOW5_MTSP	5'b00000
+`define INSTR_OPCODE_LOW8_JALR	8'b11000000
+`define INSTR_OPCODE_LOW8_JRRA	8'b00100000
 
 `define REG_INVALID					4'b1111
 `define REG_T							4'h9
 `define REG_SP							4'ha
+`define REG_RA							4'hb
 
 `define ADDR_SERIAL_PORT			16'hbf00
 `define ADDR_SERIAL_PORT_STATE	16'hbf01
@@ -63,11 +69,11 @@
 `define ADDR_KEYBOARD_STATE		16'hbf06
 `define ADDR_USER_CLK				16'hbf07
 `define ADDR_PLATE1_X				16'hbf08
-`define ADDR_PLATE1_Y				16'h7991
+`define ADDR_PLATE1_Y				16'hbf21
 `define ADDR_PLATE2_X				16'h7992
 `define ADDR_PLATE2_Y				16'h7993
 `define ADDR_BALL_X					16'hbf09
-`define ADDR_BALL_Y					16'h7995
+`define ADDR_BALL_Y					16'hbf20
 `define ADDR_RAM1_START				16'h8000
 
 `define ECAUSE_NO_EXCEPTION		16'h00
@@ -89,6 +95,7 @@
 `define KEYBOARD_RIGHT				16'ha3
 
 `define SPRITE_ID_PLATE1_X			0
+`define SPRITE_ID_PLATE1_Y			0
 `define SPRITE_ID_PLATE2_X			2
 `define SPRITE_ID_BALL_X			4
 `define SPRITE_ID_BALL_Y			5
